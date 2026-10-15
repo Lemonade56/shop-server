@@ -1,0 +1,14 @@
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+.idea/
+.vscode/
+*.iml
+data/
+*.mv.db
+*.trace.db
+*.lock.db
+*.log
+deploy/
+README.md
