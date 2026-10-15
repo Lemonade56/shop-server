@@ -1,0 +1,42 @@
+# ShopServer 一键部署配置
+# 使用方式：
+#   1. 修改下面 environment 中的 JWT_SECRET / ADMIN_PASSWORD 为你自己的值
+#   2. docker compose up -d --build
+#   3. 访问 http://服务器IP:8080 或配置 Nginx 反向代理
+#
+# 数据持久化：H2 数据库文件存在 ./data/shop，通过 volume 挂载出来，容器重建不会丢数据
+
+services:
+  shopserver:
+    build: .
+    container_name: shopserver
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # H2 数据库文件持久化到宿主机
+      - shop_data:/app/data
+    environment:
+      # 基础配置
+      SERVER_PORT: "8080"
+      SERVER_HOST: "0.0.0.0"
+
+      # ⚠️ 生产环境必须修改以下三个值！
+      JWT_SECRET: "请换成一段足够长的随机字符串，比如 openssl rand -hex 32 的输出"
+      ADMIN_USER: "admin"
+      ADMIN_PASSWORD: "请换成强密码"
+
+      # H2 默认即可，如需换 MySQL/PostgreSQL 解开下面注释并修改
+      # DB_URL: "jdbc:mysql://host.docker.internal:3306/shop?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+      # DB_USER: "shop"
+      # DB_PASSWORD: "your_db_password"
+
+    # 健康检查：容器是否正常响应
+    healthcheck:
+      test: ["CMD", "java", "-version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  shop_data:

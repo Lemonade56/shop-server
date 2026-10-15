@@ -52,6 +52,8 @@ dependencies {
 
     // H2 嵌入式数据库（零配置，数据存本地文件）
     runtimeOnly("com.h2database:h2:2.3.232")
+    // PostgreSQL 驱动 —— 当 DB_URL 设为 jdbc:postgresql://... 时自动使用
+    runtimeOnly("org.postgresql:postgresql:42.7.4")
 
     // ====== 工具库 ======
     implementation("io.insert-koin:koin-core:4.0.0")

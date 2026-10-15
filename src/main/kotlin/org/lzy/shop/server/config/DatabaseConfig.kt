@@ -15,11 +15,19 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 object DatabaseConfig {
 
     fun connect() {
+        val url = AppConfig.Db.URL
+        val driver = when {
+            url.startsWith("jdbc:postgresql:") -> "org.postgresql.Driver"
+            url.startsWith("jdbc:mysql:") -> "com.mysql.cj.jdbc.Driver"
+            url.startsWith("jdbc:h2:") -> "org.h2.Driver"
+            else -> "org.h2.Driver"
+        }
+
         Database.connect(
-            url = AppConfig.Db.URL,
+            url = url,
             user = AppConfig.Db.USER,
             password = AppConfig.Db.PASSWORD,
-            driver = "org.h2.Driver"
+            driver = driver
         )
 
         // 应用启动时自动建表（不存在则创建，存在则跳过）

@@ -10,8 +10,9 @@ package org.lzy.shop.server.config
  */
 object AppConfig {
 
-    /** 监听端口 —— 环境变量 SERVER_PORT 可覆盖 */
-    val PORT: Int = System.getenv("SERVER_PORT")?.toIntOrNull()
+    /** 监听端口 —— 优先读 PORT（云平台惯例），其次 SERVER_PORT，默认 8080 */
+    val PORT: Int = System.getenv("PORT")?.toIntOrNull()
+        ?: System.getenv("SERVER_PORT")?.toIntOrNull()
         ?: System.getProperty("server.port")?.toIntOrNull()
         ?: 8080
 

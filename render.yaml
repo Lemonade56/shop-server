@@ -1,0 +1,46 @@
+# Render 声明式部署配置
+# 部署步骤：
+#   1. 把这份文件放到项目根目录（已在根目录）
+#   2. 在 Render 上新建 "New +" → "Blueprint"
+#   3. 连接你的 GitHub 仓库（如果是 Gitee，先镜像到 GitHub）
+#   4. 填环境变量（下面 environment 里的占位符要换掉）
+#   5. 点 Deploy
+#
+# 注意：Render 免费层没有持久化磁盘，H2 数据库每次重启会清空
+
+services:
+  - type: web
+    name: shopserver
+    env: docker
+    buildCommand: ""
+    dockerfilePath: ./Dockerfile
+    startCommand: ""
+    region: singapore  # 新加坡节点，国内访问最快
+    plan: free
+    
+    envVars:
+      - key: SERVER_PORT
+        value: "8080"
+      - key: SERVER_HOST
+        value: "0.0.0.0"
+
+      # ====== 必须修改的三项 ======
+      - key: JWT_SECRET
+        value: "请换成一段足够长的随机字符串"
+      - key: ADMIN_USER
+        value: "admin"
+      - key: ADMIN_PASSWORD
+        value: "请换成强密码"
+
+      # ====== H2 数据库（默认，文件在 ./data/shop） ======
+      # Render 免费层无持久化，建议改成内存模式（重启清空数据，但接口都能跑）
+      - key: DB_URL
+        value: "jdbc:h2:mem:shop;DB_CLOSE_DELAY=-1;MODE=MySQL"
+
+      # ====== 如果要用 Supabase PostgreSQL（数据持久化），换成下面这些 ======
+      # - key: DB_URL
+      #   value: "jdbc:postgresql://aws-0-xx-xxx.pooler.supabase.com:5432/postgres?sslmode=require"
+      # - key: DB_USER
+      #   value: "postgres"
+      # - key: DB_PASSWORD
+      #   value: "你的Supabase数据库密码"
