@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopServer 后台管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="loginPage" class="login-page">
+    <div class="login-box">
+        <h1>🛒 ShopServer 后台</h1>
+        <p class="subtitle">请登录管理员账号</p>
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="loginUsername" placeholder="admin" value="admin">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="loginPassword" placeholder="••••••" value="admin123">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
+        <p id="loginError" class="error-msg"></p>
+    </div>
+</div>
+
+<!-- 主界面 -->
+<div id="mainPage" class="main-page" style="display:none;">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="logo">🛒 ShopServer</div>
+        <nav class="nav">
+            <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+                <span class="icon">📊</span><span>仪表盘</span>
+            </a>
+            <a class="nav-item" data-page="goods" onclick="showPage('goods')">
+                <span class="icon">📦</span><span>商品管理</span>
+            </a>
+            <a class="nav-item" data-page="orders" onclick="showPage('orders')">
+                <span class="icon">📋</span><span>订单管理</span>
+            </a>
+            <a class="nav-item" data-page="users" onclick="showPage('users')">
+                <span class="icon">👥</span><span>用户管理</span>
+            </a>
+            <a class="nav-item" data-page="coupons" onclick="showPage('coupons')">
+                <span class="icon">🎟️</span><span>优惠券管理</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <span id="adminName">admin</span>
+            <button class="btn-logout" onclick="doLogout()">退出</button>
+        </div>
+    </aside>
+
+    <!-- 内容区 -->
+    <main class="content">
+        <!-- 仪表盘 -->
+        <section id="page-dashboard" class="page">
+            <h2 class="page-title">📊 数据概览</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statGoods">0</div>
+                    <div class="stat-label">商品总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statOrders">0</div>
+                    <div class="stat-label">订单总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statUsers">0</div>
+                    <div class="stat-label">用户总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statSales">¥0</div>
+                    <div class="stat-label">累计销售额</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 商品管理 -->
+        <section id="page-goods" class="page" style="display:none;">
+            <div class="page-header">
+                <h2 class="page-title">📦 商品管理</h2>
+                <button class="btn btn-primary" onclick="openGoodsModal()">+ 新增商品</button>
+            </div>
+            <div class="toolbar">
+                <input type="text" id="goodsKeyword" placeholder="搜索商品名称...">
+                <button class="btn" onclick="loadGoods()">搜索</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>商品图</th><th>标题</th><th>价格</th>
+                        <th>库存/销量</th><th>状态</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="goodsTableBody"></tbody>
+            </table>
+        </section>
+
+        <!-- 订单管理 -->
+        <section id="page-orders" class="page" style="display:none;">
+            <h2 class="page-title">📋 订单管理</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>订单号</th><th>用户</th><th>金额</th>
+                        <th>状态</th><th>创建时间</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+            </table>
+        </section>
+
+        <!-- 用户管理 -->
+        <section id="page-users" class="page" style="display:none;">
+            <h2 class="page-title">👥 用户管理</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>手机号</th><th>昵称</th><th>状态</th>
+                        <th>注册时间</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+            </table>
+        </section>
+
+        <!-- 优惠券管理 -->
+        <section id="page-coupons" class="page" style="display:none;">
+            <div class="page-header">
+                <h2 class="page-title">🎟️ 优惠券管理</h2>
+                <button class="btn btn-primary" onclick="openCouponModal()">+ 新增优惠券</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>名称</th><th>减免</th><th>最低消费</th>
+                        <th>剩余</th><th>有效期</th><th>状态</th>
+                    </tr>
+                </thead>
+                <tbody id="couponsTableBody"></tbody>
+            </table>
+        </section>
+    </main>
+</div>
+
+<!-- 商品弹窗 -->
+<div id="goodsModal" class="modal" style="display:none;">
+    <div class="modal-box">
+        <h3 id="goodsModalTitle">新增商品</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>分类ID</label>
+                <input type="number" id="goods_typeId" value="1">
+            </div>
+            <div class="form-group">
+                <label>价格（分）</label>
+                <input type="number" id="goods_price" value="0">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>商品标题</label>
+            <input type="text" id="goods_title" placeholder="请输入商品标题">
+        </div>
+        <div class="form-group">
+            <label>副标题</label>
+            <input type="text" id="goods_subTitle" placeholder="选填">
+        </div>
+        <div class="form-group">
+            <label>主图 URL</label>
+            <input type="text" id="goods_mainPic" placeholder="https://...">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>上架状态</label>
+                <select id="goods_status">
+                    <option value="1">上架</option>
+                    <option value="0">下架</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>排序</label>
+                <input type="number" id="goods_sortNum" value="0">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('goodsModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveGoods()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 优惠券弹窗 -->
+<div id="couponModal" class="modal" style="display:none;">
+    <div class="modal-box">
+        <h3>新增优惠券</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>减免金额（分）</label>
+                <input type="number" id="coupon_discount" value="0">
+            </div>
+            <div class="form-group">
+                <label>最低消费（分）</label>
+                <input type="number" id="coupon_minAmount" value="0">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>名称</label>
+            <input type="text" id="coupon_name" placeholder="如：满200减20">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>开始时间</label>
+                <input type="date" id="coupon_startTime">
+            </div>
+            <div class="form-group">
+                <label>结束时间</label>
+                <input type="date" id="coupon_endTime">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>发放总量</label>
+            <input type="number" id="coupon_totalCount" value="1000">
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('couponModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveCoupon()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

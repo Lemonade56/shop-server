@@ -1,0 +1,39 @@
+# ShopServer systemd 服务（Linux 生产部署用）
+# 放到 /etc/systemd/system/shopserver.service
+# 然后：systemctl daemon-reload && systemctl enable shopserver && systemctl start shopserver
+
+[Unit]
+Description=ShopServer Ktor Backend
+After=network.target
+
+[Service]
+Type=simple
+# 运行用户（建议单独建用户）
+User=shop
+Group=shop
+
+# jar 包路径
+WorkingDirectory=/opt/shopserver
+ExecStart=/usr/bin/java -jar ShopServer.jar
+
+# 环境变量覆盖（这里配置生产参数）
+Environment="SERVER_PORT=8080"
+Environment="SERVER_HOST=0.0.0.0"
+Environment="APP_BASE_URL=https://shop.yourdomain.com"
+# 如果换了 MySQL，把下面两行解开
+#Environment="DB_URL=jdbc:mysql://localhost:3306/shop?useSSL=false&serverTimezone=Asia/Shanghai"
+#Environment="DB_USER=shop"
+#Environment="DB_PASSWORD=your_db_password"
+Environment="JWT_SECRET=换一个足够长的随机字符串"
+Environment="ADMIN_USER=admin"
+Environment="ADMIN_PASSWORD=换一个强密码"
+
+# 自动重启
+Restart=on-failure
+RestartSec=5
+
+# 资源限制
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
