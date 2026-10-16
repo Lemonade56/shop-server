@@ -18,15 +18,15 @@ RUN chmod +x gradlew && ./gradlew dependencies --no-daemon --stacktrace
 # 再拷贝源码，这样代码变动不会导致依赖缓存失效
 COPY src src
 
-# 打 fat jar
-RUN ./gradlew jar --no-daemon --stacktrace
+# 打 fat jar（shadowJar 正确处理 kotlinx-serialization 的 SPI 元数据）
+RUN ./gradlew shadowJar --no-daemon --stacktrace
 
 # ---- 阶段 2：运行 ----
 FROM openjdk:17-jre-slim
 WORKDIR /app
 
 # 只拷贝构建产物，JRE 镜像比 JDK 小很多
-COPY --from=builder /app/build/libs/ShopServer-0.1.0.jar app.jar
+COPY --from=builder /app/build/libs/ShopServer.jar app.jar
 
 EXPOSE 8080
 
