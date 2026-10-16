@@ -1,10 +1,10 @@
 // ShopServer —— 单模块 Ktor 后端项目
 // 与 Android App（Shop）使用相同的数据契约和 JSON 格式
-
 plugins {
-    // Ktor 官方 Gradle 插件：自动配置 kotlin("jvm") + kotlin("plugin.serialization") + application
-    // 并自动生成 fat jar（所有依赖打包进一个 jar，不存在 classpath 分离问题）
-    id("io.ktor.plugin") version "3.5.2"
+    // Kotlin 版本与 Ktor 3.5.2 官方文档一致（2.3.0），避免编译器版本过新导致序列化插件行为异常
+    kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
+    application
 }
 
 group = "org.lzy.shop"
@@ -14,12 +14,6 @@ application {
     mainClass = "org.lzy.shop.server.ApplicationKt"
 }
 
-ktor {
-    fatJar {
-        archiveFileName.set("ShopServer-all.jar")
-    }
-}
-
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
@@ -27,9 +21,8 @@ java {
 }
 
 dependencies {
-    val ktorVersion = "3.5.2"
-
     // ====== Ktor Server ======
+    val ktorVersion = "3.5.2"
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
 
@@ -40,7 +33,7 @@ dependencies {
     // 认证：JWT
     implementation("io.ktor:ktor-server-auth-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-auth-jwt-jvm:$ktorVersion")
-    implementation("com.auth0:java-jwt:4.4.0")
+    implementation("com.auth0:java-jwt:4.4.0")                       // JWT 生成/解析（JwtService 用）
 
     // 常用插件
     implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
@@ -50,6 +43,8 @@ dependencies {
     implementation("io.ktor:ktor-server-compression-jvm:$ktorVersion")
 
     // ====== 数据库：Exposed + H2 ======
+    // JetBrains Exposed 1.5.x —— 官方推荐最新稳定版
+    // 迁移指南：旧 DSL select { } → 新 DSL selectAll().where { }
     val exposedVersion = "1.5.1"
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -58,12 +53,13 @@ dependencies {
 
     // H2 嵌入式数据库（零配置，数据存本地文件）
     runtimeOnly("com.h2database:h2:2.3.232")
+    // PostgreSQL 驱动 —— 当 DB_URL 设为 jdbc:postgresql://... 时自动使用
     runtimeOnly("org.postgresql:postgresql:42.7.4")
 
     // ====== 工具库 ======
     implementation("io.insert-koin:koin-core:4.0.0")
     implementation("io.insert-koin:koin-ktor:4.0.0")
-    implementation("cn.hutool:hutool-all:5.8.34")
+    implementation("cn.hutool:hutool-all:5.8.34")           // 常用工具（加密、验证码等）
 
     // ====== 日志 ======
     implementation("ch.qos.logback:logback-classic:1.5.12")
@@ -73,6 +69,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")
 }
 
+// Kotlin 编译选项
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-opt-in=kotlin.RequiresOptIn")
@@ -82,3 +79,5 @@ kotlin {
 tasks.test {
     useJUnitPlatform()
 }
+
+// 使用 Gradle 官方 installDist 生成标准分发包（每个依赖独立 jar，无打包问题）
