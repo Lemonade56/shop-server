@@ -1,6 +1,6 @@
 # ShopServer Docker 镜像
-# 多阶段构建：第一阶段用 JDK 编译，第二阶段只用 JRE 运行
-# 使用 Gradle 官方 installDist，每个依赖独立 jar，避免 fat jar 打包丢失 SPI 元数据
+# 使用 Ktor 官方 fat jar 构建：所有依赖（含编译器生成的 serializer 类）打包进一个 jar
+# 彻底消除 installDist 方式可能存在的 classpath 分离导致 serializer 找不到的问题
 
 # ---- 阶段 1：构建 ----
 FROM openjdk:17-jdk-slim AS builder
@@ -12,26 +12,23 @@ COPY gradle/wrapper/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.prop
 COPY gradlew .
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 
-# 给 gradlew 加执行权限，先跑一次依赖下载
-RUN chmod +x gradlew && ./gradlew dependencies --no-daemon --stacktrace
+RUN chmod +x gradlew
 
 # 再拷贝源码，这样代码变动不会导致依赖缓存失效
 COPY src src
 
-# 生成标准分发包（installDist → build/install/ShopServer/）
-RUN ./gradlew installDist --no-daemon --stacktrace
+# clean 消除任何旧缓存；buildFatJar 由 ktor plugin 提供
+# 产物：build/libs/ShopServer-all.jar（一个 jar 包含所有依赖 + 生成的 serializer 类）
+RUN ./gradlew clean buildFatJar --no-daemon --stacktrace
 
 # ---- 阶段 2：运行 ----
 FROM openjdk:17-jre-slim
 WORKDIR /app
 
-# 拷贝 installDist 的产物（每个依赖 jar 独立，无 SPI 丢失风险）
-COPY --from=builder /app/build/install/ShopServer /app
-
-# 启动脚本加执行权限
-RUN chmod +x /app/bin/ShopServer
+# 只拷贝一个 fat jar（ktor plugin 生成）
+COPY --from=builder /app/build/libs/ShopServer-all.jar /app/
 
 EXPOSE 8080
 
-# 用 Gradle 生成的标准启动脚本
-ENTRYPOINT ["/app/bin/ShopServer"]
+# 直接 java -jar 运行
+ENTRYPOINT ["java", "-jar", "/app/ShopServer-all.jar"]
