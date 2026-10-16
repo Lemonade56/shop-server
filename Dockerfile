@@ -10,7 +10,7 @@ WORKDIR /app
 COPY gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.jar
 COPY gradle/wrapper/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.properties
 COPY gradlew .
-COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY build.gradle.kts settings.gradle.kts gradle.properties local.properties ./
 
 # 给 gradlew 加执行权限，先跑一次依赖下载
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon --stacktrace
