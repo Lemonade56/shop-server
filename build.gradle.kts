@@ -1,8 +1,9 @@
 // ShopServer —— 单模块 Ktor 后端项目
 // 与 Android App（Shop）使用相同的数据契约和 JSON 格式
 plugins {
-    kotlin("jvm") version "2.3.21"
-    kotlin("plugin.serialization") version "2.3.21"
+    // Kotlin 版本与 Ktor 3.5.2 官方文档一致（2.3.0），避免编译器版本过新导致序列化插件行为异常
+    kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
     application
 }
 
@@ -20,6 +21,13 @@ java {
 }
 
 dependencies {
+    // ====== 显式锁定 kotlinx-serialization runtime 版本 ======
+    // 避免 Ktor 传递依赖的版本和编译器插件生成的代码不兼容
+    // 2026-10 最新正式版为 1.11.0
+    val serializationRuntimeVersion = "1.11.0"
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$serializationRuntimeVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:$serializationRuntimeVersion")
+
     // ====== Ktor Server ======
     val ktorVersion = "3.5.2"
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
