@@ -51,7 +51,7 @@ fun Application.configureJwt() {
             challenge { _, _ ->
                 call.respond(
                     HttpStatusCode.Unauthorized,
-                    org.lzy.shop.server.common.fail<Any>(
+                    org.lzy.shop.server.common.fail<String>(
                         code = ResultCode.UNAUTHORIZED,
                         message = "登录已过期，请重新登录"
                     )

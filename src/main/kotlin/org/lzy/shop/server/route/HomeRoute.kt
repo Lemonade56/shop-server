@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Banners
 import org.lzy.shop.server.config.Categories
 import org.lzy.shop.server.config.Goods
@@ -31,6 +31,15 @@ fun Route.configureHomeRoutes() {
         @Serializable data class MiniGoods(
             val id: Long, val typeId: Long, val title: String, val mainPic: String,
             val price: Int, val sold: Int = 0
+        )
+        @Serializable data class HomeData(
+            val banner: List<Banner>,
+            val category: List<Category>,
+            val categoryAll: List<Category>,
+            val flashSale: List<MiniGoods>,
+            val recommend: List<MiniGoods>,
+            val coupon: List<String>,
+            val goods: List<MiniGoods>
         )
 
         suspendTransaction {
@@ -86,14 +95,14 @@ fun Route.configureHomeRoutes() {
 
             call.respond(
                 ok(
-                    mapOf(
-                        "banner" to banners,
-                        "category" to categoryList,
-                        "categoryAll" to categoryList,
-                        "flashSale" to flashSale,
-                        "recommend" to recommend,
-                        "coupon" to emptyList<Any>(),
-                        "goods" to recommend
+                    HomeData(
+                        banner = banners,
+                        category = categoryList,
+                        categoryAll = categoryList,
+                        flashSale = flashSale,
+                        recommend = recommend,
+                        coupon = emptyList(),
+                        goods = recommend
                     )
                 )
             )
@@ -166,7 +175,7 @@ fun Route.configureHomeRoutes() {
                     )
                 }
 
-            call.respond(ok(mapOf("total" to total, "list" to list)))
+            call.respond(ok(PageResult(total, list)))
         }
     }
 }

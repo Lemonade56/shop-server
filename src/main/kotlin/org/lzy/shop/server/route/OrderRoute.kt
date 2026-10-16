@@ -12,9 +12,7 @@ import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.lzy.shop.server.auth.currentUserId
-import org.lzy.shop.server.common.ResultCode
-import org.lzy.shop.server.common.fail
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.OrderItems
 import org.lzy.shop.server.config.Orders
@@ -42,20 +40,22 @@ fun Route.configureOrderRoutes() {
         @Serializable data class Req(val type: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
 
+        @Serializable data class DictItem(val id: Int, val name: String)
+
         val data = when (req?.type) {
             "order_cancel_reason" -> listOf(
-                mapOf("id" to 1, "name" to "不想要了"),
-                mapOf("id" to 2, "name" to "信息填写错误"),
-                mapOf("id" to 3, "name" to "商品缺货"),
-                mapOf("id" to 4, "name" to "其他原因")
+                DictItem(1, "不想要了"),
+                DictItem(2, "信息填写错误"),
+                DictItem(3, "商品缺货"),
+                DictItem(4, "其他原因")
             )
             "order_refund_reason" -> listOf(
-                mapOf("id" to 1, "name" to "商品质量问题"),
-                mapOf("id" to 2, "name" to "商品与描述不符"),
-                mapOf("id" to 3, "name" to "发错货"),
-                mapOf("id" to 4, "name" to "其他")
+                DictItem(1, "商品质量问题"),
+                DictItem(2, "商品与描述不符"),
+                DictItem(3, "发错货"),
+                DictItem(4, "其他")
             )
-            else -> emptyList<Any>()
+            else -> emptyList<DictItem>()
         }
         call.respond(ok(data))
     }
@@ -128,9 +128,9 @@ fun Route.configureOrderRoutes() {
 
                 call.respond(
                     ok(
-                        mapOf(
-                            "orderNo" to orderNo,
-                            "orderId" to orderId
+                        CreateOrderResult(
+                            orderNo = orderNo,
+                            orderId = orderId
                         )
                     )
                 )
@@ -190,7 +190,7 @@ fun Route.configureOrderRoutes() {
                     )
                 }
 
-                call.respond(ok(mapOf("total" to total, "list" to list)))
+                call.respond(ok(PageResult(total, list)))
             }
         }
 
@@ -199,9 +199,9 @@ fun Route.configureOrderRoutes() {
             call.respond(
                 ok(
                     mapOf(
-                        "addressList" to emptyList<Any>(),
-                        "goodsList" to emptyList<Any>(),
-                        "couponList" to emptyList<Any>()
+                        "addressList" to emptyList<String>(),
+                        "goodsList" to emptyList<String>(),
+                        "couponList" to emptyList<String>()
                     )
                 )
             )
@@ -231,14 +231,18 @@ fun Route.configureOrderRoutes() {
         get("order/info/logistics") {
             val orderId = call.request.queryParameters["orderId"]?.toLongOrNull()
             @Serializable data class LogisticsItem(val time: String, val content: String)
+            @Serializable data class LogisticsInfo(
+                val company: String, val companyCode: String,
+                val trackingNo: String, val list: List<LogisticsItem>
+            )
 
             call.respond(
                 ok(
-                    mapOf(
-                        "company" to "顺丰速运",
-                        "companyCode" to "SF",
-                        "trackingNo" to "SF1234567890${orderId}",
-                        "list" to listOf(
+                    LogisticsInfo(
+                        company = "顺丰速运",
+                        companyCode = "SF",
+                        trackingNo = "SF1234567890${orderId}",
+                        list = listOf(
                             LogisticsItem("2026-10-10 14:00", "快件已到达【北京朝阳分拨中心】"),
                             LogisticsItem("2026-10-10 10:00", "快件已从【上海总集散中心】发出"),
                             LogisticsItem("2026-10-09 18:00", "快件已揽收")
@@ -290,6 +294,11 @@ fun Route.configureOrderRoutes() {
                 val goodsId: Long, val title: String, val mainPic: String,
                 val price: Int, val quantity: Int
             )
+            @Serializable data class OrderDetail(
+                val id: Long, val orderNo: String, val status: Int, val statusDesc: String,
+                val totalPrice: Int, val remark: String, val address: Map<String, String>,
+                val goodsList: List<OrderGoods>, val createTime: String
+            )
 
             suspendTransaction {
                 val orderRow = Orders.selectAll().where { Orders.id eq orderId }.firstOrNull()
@@ -311,16 +320,16 @@ fun Route.configureOrderRoutes() {
 
                 call.respond(
                     ok(
-                        mapOf(
-                            "id" to oid,
-                            "orderNo" to orderRow[Orders.orderNo],
-                            "status" to orderRow[Orders.status],
-                            "statusDesc" to statusDesc.getOrElse(orderRow[Orders.status]) { "未知" },
-                            "totalPrice" to orderRow[Orders.totalPrice],
-                            "remark" to orderRow[Orders.remark],
-                            "address" to emptyMap<String, Any>(),  // 暂未解析快照
-                            "goodsList" to goodsList,
-                            "createTime" to orderRow[Orders.createTime]
+                        OrderDetail(
+                            id = oid,
+                            orderNo = orderRow[Orders.orderNo],
+                            status = orderRow[Orders.status],
+                            statusDesc = statusDesc.getOrElse(orderRow[Orders.status]) { "未知" },
+                            totalPrice = orderRow[Orders.totalPrice],
+                            remark = orderRow[Orders.remark],
+                            address = emptyMap(),  // 暂未解析快照
+                            goodsList = goodsList,
+                            createTime = orderRow[Orders.createTime]
                         )
                     )
                 )
@@ -352,6 +361,12 @@ fun Route.configureOrderRoutes() {
 }
 
 // ===== 辅助数据类 =====
+@Serializable
+private data class CreateOrderResult(
+    val orderNo: String,
+    val orderId: Long
+)
+
 private data class OrderItemData(
     val goodsId: Long,
     val goodsTitle: String,

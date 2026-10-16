@@ -116,7 +116,8 @@ fun Application.module() {
         exception<Throwable> { call, cause ->
             call.respond(
                 HttpStatusCode.OK,
-                BaseResponse<Any>(
+                BaseResponse<String?>(
+                    data = null,
                     code = ResultCode.INTERNAL_ERROR,
                     message = "服务器内部错误: ${cause.message}"
                 )
@@ -125,7 +126,8 @@ fun Application.module() {
         status(HttpStatusCode.NotFound) { call, _ ->
             call.respond(
                 HttpStatusCode.OK,
-                BaseResponse<Any>(
+                BaseResponse<String?>(
+                    data = null,
                     code = ResultCode.NOT_FOUND,
                     message = "接口不存在: ${call.request.path()}"
                 )

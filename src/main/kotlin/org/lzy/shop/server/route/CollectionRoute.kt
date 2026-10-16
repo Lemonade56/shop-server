@@ -14,9 +14,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.lzy.shop.server.auth.currentUserId
-import org.lzy.shop.server.common.ResultCode
-import org.lzy.shop.server.common.fail
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Collections
 import org.lzy.shop.server.config.Goods as GoodsTable
 
@@ -56,7 +54,7 @@ fun Route.configureCollectionRoutes() {
                         )
                     }
 
-                call.respond(ok(mapOf("total" to total, "list" to list)))
+                call.respond(ok(PageResult(total, list)))
             }
         }
 

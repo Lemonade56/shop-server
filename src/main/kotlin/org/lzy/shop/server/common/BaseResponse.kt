@@ -24,6 +24,16 @@ data class BaseResponse<T>(
     val isSucceeded: Boolean get() = code == SUCCESS
 }
 
+/**
+ * 通用分页响应 —— 所有分页接口统一返回此结构
+ * 避免 ok(mapOf("total" to x, "list" to y)) 因混合类型推断出 Map<String, Any>
+ */
+@Serializable
+data class PageResult<T>(
+    val total: Long,
+    val list: List<T>
+)
+
 object ResultCode {
     const val SUCCESS = 200
     const val BAD_REQUEST = 400

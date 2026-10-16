@@ -7,7 +7,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import kotlinx.serialization.Serializable
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 
 /**
  * 客服消息路由 —— 对齐 App 端 CustomerServiceApi.kt
@@ -41,9 +41,9 @@ fun Route.configureCustomerServiceRoutes() {
 
             call.respond(
                 ok(
-                    mapOf(
-                        "total" to 3,
-                        "list" to listOf(
+                    PageResult(
+                        total = 3L,
+                        list = listOf(
                             Msg(1, "user", "你好，我想咨询一下...", 0, "2026-10-10 10:00"),
                             Msg(2, "cs", "您好，很高兴为您服务！", 0, "2026-10-10 10:00"),
                             Msg(3, "cs", "请问有什么可以帮您？", 0, "2026-10-10 10:01")

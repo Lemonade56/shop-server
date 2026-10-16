@@ -14,9 +14,7 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.lzy.shop.server.auth.AdminAuth
 import org.lzy.shop.server.auth.installAdminAuth
-import org.lzy.shop.server.common.ResultCode
-import org.lzy.shop.server.common.fail
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.AppConfig
 import org.lzy.shop.server.config.Coupons
 import org.lzy.shop.server.config.Orders
@@ -71,7 +69,7 @@ fun Route.configureAdminRoutes() {
             val couponCount = Coupons.selectAll().count()
             val paidOrders = Orders.selectAll().where { Orders.status eq 1 }.count()
             val totalSales = Orders.selectAll().where { Orders.status inList listOf(1, 2, 3) }
-                .sumOf { it[Orders.totalPrice] }
+                .sumOf { it[Orders.totalPrice] }.toLong()
 
             call.respond(
                 ok(
@@ -93,6 +91,12 @@ fun Route.configureAdminRoutes() {
         @Serializable data class Req(val keyword: String = "", val page: Int = 1, val size: Int = 20)
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
+        @Serializable data class GoodsItem(
+            val id: Long, val typeId: Long, val title: String,
+            val mainPic: String, val price: Int, val sold: Int,
+            val status: Int, val createTime: String
+        )
+
         suspendTransaction {
             val total = if (req.keyword.isNotBlank()) {
                 GoodsTable.selectAll().where { GoodsTable.title like "%${req.keyword}%" }.count()
@@ -107,19 +111,19 @@ fun Route.configureAdminRoutes() {
             }.orderBy(GoodsTable.id, SortOrder.DESC)
                 .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
                 .map { row ->
-                    mapOf(
-                        "id" to row[GoodsTable.id],
-                        "typeId" to row[GoodsTable.typeId],
-                        "title" to row[GoodsTable.title],
-                        "mainPic" to row[GoodsTable.mainPic],
-                        "price" to row[GoodsTable.price],
-                        "sold" to row[GoodsTable.sold],
-                        "status" to row[GoodsTable.status],
-                        "createTime" to row[GoodsTable.createTime]
+                    GoodsItem(
+                        id = row[GoodsTable.id],
+                        typeId = row[GoodsTable.typeId],
+                        title = row[GoodsTable.title],
+                        mainPic = row[GoodsTable.mainPic],
+                        price = row[GoodsTable.price],
+                        sold = row[GoodsTable.sold],
+                        status = row[GoodsTable.status],
+                        createTime = row[GoodsTable.createTime]
                     )
                 }
 
-            call.respond(ok(mapOf("total" to total, "list" to list)))
+            call.respond(ok(PageResult(total, list)))
         }
     }
 
@@ -218,6 +222,12 @@ fun Route.configureAdminRoutes() {
         @Serializable data class Req(val status: Int? = null, val page: Int = 1, val size: Int = 20)
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
+        @Serializable data class OrderItem(
+            val id: Long, val orderNo: String, val userId: Long,
+            val totalPrice: Int, val status: Int, val remark: String,
+            val createTime: String, val payTime: String?, val shipTime: String?
+        )
+
         suspendTransaction {
             val total = if (req.status != null) {
                 Orders.selectAll().where { Orders.status eq req.status }.count()
@@ -234,20 +244,20 @@ fun Route.configureAdminRoutes() {
             val list = query.orderBy(Orders.createTime, SortOrder.DESC)
                 .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
                 .map { row ->
-                    mapOf(
-                        "id" to row[Orders.id],
-                        "orderNo" to row[Orders.orderNo],
-                        "userId" to row[Orders.userId],
-                        "totalPrice" to row[Orders.totalPrice],
-                        "status" to row[Orders.status],
-                        "remark" to row[Orders.remark],
-                        "createTime" to row[Orders.createTime],
-                        "payTime" to row[Orders.payTime],
-                        "shipTime" to row[Orders.shipTime]
+                    OrderItem(
+                        id = row[Orders.id],
+                        orderNo = row[Orders.orderNo],
+                        userId = row[Orders.userId],
+                        totalPrice = row[Orders.totalPrice],
+                        status = row[Orders.status],
+                        remark = row[Orders.remark],
+                        createTime = row[Orders.createTime],
+                        payTime = row[Orders.payTime],
+                        shipTime = row[Orders.shipTime]
                     )
                 }
 
-            call.respond(ok(mapOf("total" to total, "list" to list)))
+            call.respond(ok(PageResult(total, list)))
         }
     }
 
@@ -275,6 +285,11 @@ fun Route.configureAdminRoutes() {
         @Serializable data class Req(val keyword: String = "", val page: Int = 1, val size: Int = 20)
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
+        @Serializable data class UserItem(
+            val id: Long, val phone: String, val nickname: String,
+            val status: Int, val createTime: String
+        )
+
         suspendTransaction {
             val total = Users.selectAll().count()
 
@@ -282,16 +297,16 @@ fun Route.configureAdminRoutes() {
                 .orderBy(Users.id, SortOrder.DESC)
                 .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
                 .map { row ->
-                    mapOf(
-                        "id" to row[Users.id],
-                        "phone" to row[Users.phone],
-                        "nickname" to (row[Users.nickname] ?: ""),
-                        "status" to row[Users.status],
-                        "createTime" to row[Users.createTime]
+                    UserItem(
+                        id = row[Users.id],
+                        phone = row[Users.phone],
+                        nickname = (row[Users.nickname] ?: ""),
+                        status = row[Users.status],
+                        createTime = row[Users.createTime]
                     )
                 }
 
-            call.respond(ok(mapOf("total" to total, "list" to list)))
+            call.respond(ok(PageResult(total, list)))
         }
     }
 
@@ -316,19 +331,25 @@ fun Route.configureAdminRoutes() {
 
     // ===== 优惠券管理 =====
     get("coupon/list") {
+        @Serializable data class CouponItem(
+            val id: Long, val name: String, val discount: Int,
+            val minAmount: Int, val remainCount: Int,
+            val startTime: String, val endTime: String, val status: Int
+        )
+
         suspendTransaction {
             val list = Coupons.selectAll()
                 .orderBy(Coupons.id, SortOrder.DESC)
                 .map { row ->
-                    mapOf(
-                        "id" to row[Coupons.id],
-                        "name" to row[Coupons.name],
-                        "discount" to row[Coupons.discount],
-                        "minAmount" to row[Coupons.minAmount],
-                        "remainCount" to row[Coupons.remainCount],
-                        "startTime" to row[Coupons.startTime],
-                        "endTime" to row[Coupons.endTime],
-                        "status" to row[Coupons.status]
+                    CouponItem(
+                        id = row[Coupons.id],
+                        name = row[Coupons.name],
+                        discount = row[Coupons.discount],
+                        minAmount = row[Coupons.minAmount],
+                        remainCount = row[Coupons.remainCount],
+                        startTime = row[Coupons.startTime],
+                        endTime = row[Coupons.endTime],
+                        status = row[Coupons.status]
                     )
                 }
 

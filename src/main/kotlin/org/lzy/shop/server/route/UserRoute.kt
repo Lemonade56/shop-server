@@ -214,18 +214,23 @@ fun Route.configureUserRoutes() {
             val userId = call.currentUserIdOrNull()
                 ?: return@get call.respond(fail<String>(code = ResultCode.UNAUTHORIZED, message = "未登录"))
 
+            @Serializable data class UserInfo(
+                val id: Long, val phone: String, val nickname: String,
+                val avatarUrl: String, val status: Int
+            )
+
             suspendTransaction {
                 val user = Users.selectAll().where { Users.id eq userId }.firstOrNull()
                     ?: return@suspendTransaction call.respond(fail<String>(message = "用户不存在"))
 
                 call.respond(
                     ok(
-                        mapOf(
-                            "id" to user[Users.id],
-                            "phone" to user[Users.phone],
-                            "nickname" to (user[Users.nickname] ?: ""),
-                            "avatarUrl" to (user[Users.avatarUrl] ?: ""),
-                            "status" to user[Users.status]
+                        UserInfo(
+                            id = user[Users.id],
+                            phone = user[Users.phone],
+                            nickname = (user[Users.nickname] ?: ""),
+                            avatarUrl = (user[Users.avatarUrl] ?: ""),
+                            status = user[Users.status]
                         )
                     )
                 )
@@ -248,7 +253,7 @@ fun Route.configureUserRoutes() {
                             "unpaid" to unpaid,
                             "unshipped" to unshipped,
                             "unreceived" to unreceived,
-                            "uncomment" to 0,
+                            "uncomment" to 0L,
                             "refunding" to refunding
                         )
                     )
@@ -258,7 +263,7 @@ fun Route.configureUserRoutes() {
 
         get("user/info/logoff") {
             // 无状态 JWT：服务端不需要做什么，客户端删 token 即可
-            call.respond(ok(Unit))
+            call.respond(ok("ok"))
         }
     }
 }

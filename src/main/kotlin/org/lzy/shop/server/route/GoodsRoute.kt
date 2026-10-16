@@ -9,9 +9,7 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.lzy.shop.server.common.ok
-import org.lzy.shop.server.common.fail
-import org.lzy.shop.server.common.ResultCode
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Comments
 import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.GoodsSpecs
@@ -32,7 +30,7 @@ fun Route.configureGoodsRoutes() {
 
     get("page/goodsDetail") {
         val goodsId = call.request.queryParameters["goodsId"]?.toLongOrNull()
-            ?: return@get call.respond(fail<Any>(ResultCode.BAD_REQUEST, "goodsId 参数无效"))
+            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "goodsId 参数无效"))
 
         @Serializable data class Goods(
             val id: Long, val typeId: Long, val title: String, val subTitle: String? = null,
@@ -49,7 +47,7 @@ fun Route.configureGoodsRoutes() {
 
         suspendTransaction {
             val row = GoodsTable.selectAll().where { GoodsTable.id eq goodsId }.firstOrNull()
-                ?: return@suspendTransaction call.respond(fail<Any>(ResultCode.NOT_FOUND, "商品不存在"))
+                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
 
             fun parseJsonArray(raw: String?): List<String> {
                 if (raw.isNullOrBlank()) return emptyList()
@@ -86,14 +84,16 @@ fun Route.configureGoodsRoutes() {
         val req = runCatching { call.receive<Req>() }.getOrNull()
             ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
 
+        @Serializable data class SpecItem(val id: Long, val spec: String, val price: Int, val stock: Int)
+
         suspendTransaction {
             val specs = GoodsSpecs.selectAll().where { GoodsSpecs.goodsId eq req.goodsId }
                 .map { row ->
-                    mapOf(
-                        "id" to row[GoodsSpecs.id],
-                        "spec" to row[GoodsSpecs.spec],
-                        "price" to row[GoodsSpecs.price],
-                        "stock" to row[GoodsSpecs.stock]
+                    SpecItem(
+                        id = row[GoodsSpecs.id],
+                        spec = row[GoodsSpecs.spec],
+                        price = row[GoodsSpecs.price],
+                        stock = row[GoodsSpecs.stock]
                     )
                 }
 
@@ -105,6 +105,11 @@ fun Route.configureGoodsRoutes() {
         @Serializable data class Req(val goodsId: Long = -1L, val page: Int = 1, val size: Int = 10)
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
+        @Serializable data class CommentItem(
+            val id: Long, val userId: Long, val nickname: String,
+            val avatarUrl: String, val content: String, val createTime: String
+        )
+
         suspendTransaction {
             val total = Comments.selectAll().where { Comments.goodsId eq req.goodsId }.count()
 
@@ -113,17 +118,17 @@ fun Route.configureGoodsRoutes() {
                 .orderBy(Comments.createTime, SortOrder.DESC)
                 .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
                 .map { row ->
-                    mapOf(
-                        "id" to row[Comments.id],
-                        "userId" to row[Users.id],
-                        "nickname" to (row[Users.nickname] ?: ""),
-                        "avatarUrl" to (row[Users.avatarUrl] ?: ""),
-                        "content" to row[Comments.content],
-                        "createTime" to row[Comments.createTime]
+                    CommentItem(
+                        id = row[Comments.id],
+                        userId = row[Users.id],
+                        nickname = (row[Users.nickname] ?: ""),
+                        avatarUrl = (row[Users.avatarUrl] ?: ""),
+                        content = row[Comments.content],
+                        createTime = row[Comments.createTime]
                     )
                 }
 
-            call.respond(ok(mapOf("total" to total, "list" to list)))
+            call.respond(ok(PageResult(total, list)))
         }
     }
 
@@ -169,29 +174,31 @@ fun Route.configureGoodsRoutes() {
                     )
                 }
 
-            call.respond(ok(mapOf("total" to total, "list" to list)))
+            call.respond(ok(PageResult(total, list)))
         }
     }
 
     post("goods/search/keyword/list") {
+        @Serializable data class KeywordItem(val id: Long, val keyword: String)
+
         suspendTransaction {
             // 从 SearchKeywords 表取热门关键词，不够时用硬编码补
             val fromDb = SearchKeywords.selectAll().where { SearchKeywords.isHot eq true }
                 .orderBy(SearchKeywords.sortNum, SortOrder.ASC)
                 .map { row ->
-                    mapOf(
-                        "id" to row[SearchKeywords.id],
-                        "keyword" to row[SearchKeywords.keyword]
+                    KeywordItem(
+                        id = row[SearchKeywords.id],
+                        keyword = row[SearchKeywords.keyword]
                     )
                 }
 
             val fallback = listOf(
-                mapOf("id" to 101, "keyword" to "iPhone 16"),
-                mapOf("id" to 102, "keyword" to "小米15"),
-                mapOf("id" to 103, "keyword" to "羽绒服"),
-                mapOf("id" to 104, "keyword" to "戴森"),
-                mapOf("id" to 105, "keyword" to "AirPods"),
-                mapOf("id" to 106, "keyword" to "Switch")
+                KeywordItem(101, "iPhone 16"),
+                KeywordItem(102, "小米15"),
+                KeywordItem(103, "羽绒服"),
+                KeywordItem(104, "戴森"),
+                KeywordItem(105, "AirPods"),
+                KeywordItem(106, "Switch")
             )
 
             call.respond(ok(if (fromDb.isEmpty()) fallback else fromDb))
