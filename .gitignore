@@ -35,3 +35,6 @@ Thumbs.db
 .env
 application-local.conf
 local.properties
+
+# 临时文件
+.git-commit-msg.txt

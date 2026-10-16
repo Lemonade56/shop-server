@@ -1,7 +1,0 @@
-fix: 消除所有 Any 泛型参数，修复 kotlinx.serialization 编译失败
-
-- StatusPages/JwtAuth/GoodsRoute 的 BaseResponse<Any>/fail<Any> 改为 String?/String
-- ok(Unit) 改为 ok("ok")，emptyList<Any>/emptyMap<String, Any> 清零
-- 新增 PageResult<T> 通用分页响应
-- 所有混合类型 ok(mapOf(...)) 替换为 @Serializable data class
-- import 统一为 org.lzy.shop.server.common.*
