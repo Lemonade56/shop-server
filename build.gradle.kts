@@ -4,7 +4,6 @@ plugins {
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.serialization") version "2.3.21"
     application
-    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "org.lzy.shop"
@@ -80,18 +79,4 @@ tasks.test {
     useJUnitPlatform()
 }
 
-// fat jar 打包 —— 使用 Shadow 插件，正确处理 SPI 元数据（kotlinx-serialization 等）
-tasks.shadowJar {
-    archiveBaseName.set("ShopServer")
-    archiveClassifier.set("")
-    archiveVersion.set("")
-    manifest {
-        attributes["Main-Class"] = "org.lzy.shop.server.ApplicationKt"
-    }
-    mergeServiceFiles()
-}
-
-// 让 build 任务自动生成 fat jar
-tasks.build {
-    dependsOn(tasks.shadowJar)
-}
+// 使用 Gradle 官方 installDist 生成标准分发包（每个依赖独立 jar，无打包问题）
