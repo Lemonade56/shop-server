@@ -20,7 +20,7 @@ fun Route.configureFeedbackRoutes() {
 
     authenticate("auth-jwt") {
 
-        post("app/feedback/page") {
+        post("feedback/page") {
             @Serializable data class Req(val page: Int = 1, val size: Int = 10)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
@@ -64,7 +64,7 @@ fun Route.configureFeedbackRoutes() {
             }
         }
 
-        post("app/feedback/submit") {
+        post("feedback/submit") {
             @Serializable data class Req(
                 val type: String, val content: String,
                 val images: List<String> = emptyList()

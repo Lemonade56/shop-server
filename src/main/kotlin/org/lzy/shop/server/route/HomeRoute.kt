@@ -21,7 +21,9 @@ import org.lzy.shop.server.config.Goods
  * 接口列表：
  *   GET  app/page/home            首页聚合数据（轮播+分类+推荐+优惠券）
  *   POST app/goods/type/list      商品分类列表
- *   POST app/goods/info/page      首页商品分页（复用 Goods 搜索接口）
+ *
+ * 说明：商品列表分页 POST app/goods/info/page 由 GoodsRoute 统一提供，
+ * 首页 goods 字段直接复用该接口返回即可。
  */
 fun Route.configureHomeRoutes() {
 
@@ -149,33 +151,6 @@ fun Route.configureHomeRoutes() {
         }
     }
 
-    post("goods/info/page") {
-        // 首页"全部商品"分页 —— 和搜索共用同一个接口
-        @Serializable data class Req(val page: Int = 1, val size: Int = 10)
-        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
-
-        @Serializable data class MiniGoods(
-            val id: Long, val typeId: Long, val title: String, val mainPic: String,
-            val price: Int, val sold: Int = 0
-        )
-
-        suspendTransaction {
-            val total = Goods.selectAll().where { Goods.status eq 1 }.count()
-            val list = Goods.selectAll().where { Goods.status eq 1 }
-                .orderBy(Goods.sortNum, SortOrder.ASC)
-                .limit(req.size.coerceAtLeast(1))
-                .map { row ->
-                    MiniGoods(
-                        id = row[Goods.id],
-                        typeId = row[Goods.typeId],
-                        title = row[Goods.title],
-                        mainPic = row[Goods.mainPic],
-                        price = row[Goods.price],
-                        sold = row[Goods.sold]
-                    )
-                }
-
-            call.respond(ok(PageResult(total, list)))
-        }
-    }
+    // 说明：商品列表分页 POST app/goods/info/page 已由 GoodsRoute 提供，
+    // 首页需要的 goods 字段复用同一个接口即可，这里不再重复注册避免路由冲突。
 }
