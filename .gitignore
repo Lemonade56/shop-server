@@ -24,6 +24,7 @@ logs/
 # 运行产物
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+!prebuilt/**/*.jar
 *.class
 *.war
 
