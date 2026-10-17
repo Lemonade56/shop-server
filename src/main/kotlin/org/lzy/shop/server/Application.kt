@@ -21,6 +21,7 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
@@ -168,7 +169,12 @@ fun Application.module() {
         }
 
         // ====== Admin API（后台管理） ======
+        // /admin 根路径由上面的 static("admin") 处理，但 route("admin") 注册在同一路径层级会抢先匹配，
+        // 所以这里加一个根路径 GET handler 返回 index.html，避免 StatusPages 拦截返回 404
         route("admin") {
+            get {
+                call.respondRedirect("/admin/index.html")
+            }
             configureAdminRoutes()
         }
     }
