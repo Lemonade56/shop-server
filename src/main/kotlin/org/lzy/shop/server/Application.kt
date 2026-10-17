@@ -111,26 +111,24 @@ fun Application.module() {
         }
     }
 
-    // 7. 异常 & 错误页 —— 统一返回 BaseResponse
+    // 7. 异常 & 错误页
+    // 注意：这里必须用 respondText 写原始 JSON 字符串，不能用 call.respond(BaseResponse(...))
+    // 因为如果 ContentNegotiation 的 kotlinx.serialization 找不到序列化器，会在这里再次崩溃
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            call.respond(
-                HttpStatusCode.OK,
-                BaseResponse<String?>(
-                    data = null,
-                    code = ResultCode.INTERNAL_ERROR,
-                    message = "服务器内部错误: ${cause.message}"
-                )
+            // 异常兜底：直接写 JSON 字符串，绕过 ContentNegotiation 序列化
+            call.respondText(
+                """{"data":null,"code":${ResultCode.INTERNAL_ERROR},"message":"服务器内部错误: ${cause.message}"}""",
+                contentType = io.ktor.http.ContentType.Application.Json,
+                status = HttpStatusCode.OK
             )
         }
         status(HttpStatusCode.NotFound) { call, _ ->
-            call.respond(
-                HttpStatusCode.OK,
-                BaseResponse<String?>(
-                    data = null,
-                    code = ResultCode.NOT_FOUND,
-                    message = "接口不存在: ${call.request.path()}"
-                )
+            // 404 兜底：直接写 JSON 字符串，绕过 ContentNegotiation 序列化
+            call.respondText(
+                """{"data":null,"code":${ResultCode.NOT_FOUND},"message":"接口不存在: ${call.request.path()}"}""",
+                contentType = io.ktor.http.ContentType.Application.Json,
+                status = HttpStatusCode.OK
             )
         }
     }

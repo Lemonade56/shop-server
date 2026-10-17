@@ -33,10 +33,16 @@ WORKDIR /app
 # 拷贝 installDist 的产物（每个依赖 jar 独立，无 SPI 丢失风险）
 COPY --from=builder /app/build/install/ShopServer /app
 
-# 启动脚本加执行权限
-RUN chmod +x /app/bin/ShopServer
+# 诊断：确认序列化器类在多阶段拷贝后仍然存在
+RUN jar tf /app/lib/ShopServer-0.1.0.jar | grep 'BaseResponse.*serializer' \
+    && echo "✓ stage2 serializer OK" \
+    || (echo "✗ stage2 serializer MISSING after COPY!" && exit 1)
+
+# 检查 lib 目录实际有多少 jar（排查空拷贝）
+RUN ls /app/lib/*.jar | wc -l | xargs -I{} echo "✓ lib jar count: {}"
 
 EXPOSE 8080
 
-# 用 Gradle 生成的标准启动脚本
-ENTRYPOINT ["/app/bin/ShopServer"]
+# 绕过 Gradle 生成的 bin/ShopServer 脚本，直接用 java -cp
+# installDist 脚本在某些环境下 classpath 装配有问题，导致运行时找不到 $$serializer
+ENTRYPOINT ["java", "-cp", "/app/lib/*", "org.lzy.shop.server.ApplicationKt"]
