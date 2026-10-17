@@ -22,6 +22,7 @@ import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
@@ -146,27 +147,17 @@ fun Application.module() {
 
         // ====== App API（Android/iOS 端） ======
         route("app") {
-            configureUserRoutes()
-            configureHomeRoutes()
-            configureGoodsRoutes()
-            configureOrderRoutes()
-            configureAddressRoutes()
-            configureCouponRoutes()
-            configureCollectionRoutes()
-            configureNotificationRoutes()
-            configureFeedbackRoutes()
-            configureCustomerServiceRoutes()
-            configureUploadRoutes()
+            configureAllAppRoutes()
         }
 
-        // ====== Admin API（后台管理） ======
-        route("admin") {
-            configureAdminRoutes()
+        // ====== /api 别名 —— 和 /app 完全相同，方便前端用 /api/* 调用 ======
+        route("api") {
+            configureAllAppRoutes()
         }
 
-        // ====== Admin 前端页面 ======
-        // 从 classpath 的 "admin" 目录加载静态资源（开发和 jar 部署都能用）
-        // 优先级：Route 里精确匹配的 API handler > 这里的静态资源
+        // ====== Admin 前端页面（静态资源） ======
+        // 放在 route("admin") 前面，避免路由组抢先匹配 /admin 根路径导致 static 永远不被调用
+        // static 内部是精确文件匹配，不会拦截 /admin/* 下的 API 请求
         static("admin") {
             resources("admin")
             // SPA 回退：找不到文件时返回 index.html（方便前端路由）
@@ -175,7 +166,27 @@ fun Application.module() {
                 resource("admin/index.html")
             }
         }
+
+        // ====== Admin API（后台管理） ======
+        route("admin") {
+            configureAdminRoutes()
+        }
     }
+}
+
+/** /app 和 /api 共用的 App 端路由集合，两个前缀下行为完全一致 */
+fun Route.configureAllAppRoutes() {
+    configureUserRoutes()
+    configureHomeRoutes()
+    configureGoodsRoutes()
+    configureOrderRoutes()
+    configureAddressRoutes()
+    configureCouponRoutes()
+    configureCollectionRoutes()
+    configureNotificationRoutes()
+    configureFeedbackRoutes()
+    configureCustomerServiceRoutes()
+    configureUploadRoutes()
 }
 
 fun main() {
@@ -187,7 +198,7 @@ fun main() {
     println("╠══════════════════════════════════════════╣")
     println("║  API 基址 : $baseUrl                     ║")
     println("║  健康检查 : $baseUrl/health               ║")
-    println("║  App API  : $baseUrl/app/*               ║")
+    println("║  App API  : $baseUrl/app/*  (别名 /api/*)║")
     println("║  Admin API: $baseUrl/admin/*              ║")
     println("║  管理后台 : $baseUrl/admin                ║")
     println("╠══════════════════════════════════════════╣")
