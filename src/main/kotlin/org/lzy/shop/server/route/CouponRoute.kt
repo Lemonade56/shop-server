@@ -51,7 +51,7 @@ fun Route.configureCouponRoutes() {
     authenticate("auth-jwt") {
 
         post("market/coupon/user/page") {
-            @Serializable data class Req(val page: Int = 1, val size: Int = 20)
+            @Serializable data class Req(val page: Int = 1)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
             @Serializable data class UserCouponItem(
@@ -71,7 +71,7 @@ fun Route.configureCouponRoutes() {
                 val list = UserCoupons.innerJoin(Coupons)
                     .selectAll().where { UserCoupons.userId eq userId }
                     .orderBy(UserCoupons.receiveTime, SortOrder.DESC)
-                    .limit(req.size.coerceAtLeast(1))
+                    .limit(10).offset(((req.page - 1) * 10).toLong())
                     .map { row ->
                         UserCouponItem(
                             id = row[UserCoupons.id],
@@ -92,7 +92,7 @@ fun Route.configureCouponRoutes() {
         post("market/coupon/user/receive") {
             @Serializable data class Req(val couponId: Long)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
             val now = System.currentTimeMillis().toString()
@@ -124,7 +124,7 @@ fun Route.configureCouponRoutes() {
                     it[Coupons.remainCount] = coupon[Coupons.remainCount] - 1
                 }
 
-                call.respond(ok("领取成功"))
+                call.respond(okMsg("领取优惠券"))
             }
         }
     }

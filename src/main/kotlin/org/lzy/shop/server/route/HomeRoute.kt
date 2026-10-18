@@ -67,6 +67,18 @@ fun Route.configureHomeRoutes() {
                     )
                 }
 
+            // 全部分类（扁平，包含子分类）
+            val categoryAllList = Categories.selectAll()
+                .orderBy(Categories.parentId, SortOrder.ASC)
+                .orderBy(Categories.sortNum, SortOrder.ASC)
+                .map { row ->
+                    Category(
+                        id = row[Categories.id],
+                        name = row[Categories.name],
+                        pic = row[Categories.pic] ?: ""
+                    )
+                }
+
             // 限时精选：取 featured 商品前 2 个
             val flashSale = Goods.selectAll().where { (Goods.featured eq true) and (Goods.status eq 1) }
                 .limit(2)
@@ -100,7 +112,7 @@ fun Route.configureHomeRoutes() {
                     HomeData(
                         banner = banners,
                         category = categoryList,
-                        categoryAll = categoryList,
+                        categoryAll = categoryAllList,
                         flashSale = flashSale,
                         recommend = recommend,
                         coupon = emptyList(),
@@ -112,42 +124,27 @@ fun Route.configureHomeRoutes() {
     }
 
     post("goods/type/list") {
-        // 分类列表：返回树形结构
-        @Serializable data class CategoryNode(
-            val id: Long, val name: String, val parentId: Long = 0,
-            val pic: String = "", val sortNum: Int = 0, val children: List<CategoryNode> = emptyList()
+        // 分类列表：扁平结构，前端可按 parentId 自行组装树
+        @Serializable data class CategoryItem(
+            val id: Long, val name: String, val parentId: Long,
+            val pic: String, val sortNum: Int
         )
 
         suspendTransaction {
-            val all = Categories.selectAll().orderBy(Categories.sortNum, SortOrder.ASC).toList()
-            val roots = all.filter { it[Categories.parentId] == 0L }
+            val list = Categories.selectAll()
+                .orderBy(Categories.parentId, SortOrder.ASC)
+                .orderBy(Categories.sortNum, SortOrder.ASC)
+                .map { row ->
+                    CategoryItem(
+                        id = row[Categories.id],
+                        name = row[Categories.name],
+                        parentId = row[Categories.parentId],
+                        pic = row[Categories.pic] ?: "",
+                        sortNum = row[Categories.sortNum]
+                    )
+                }
 
-            fun buildChildren(parentId: Long): List<CategoryNode> {
-                return all.filter { it[Categories.parentId] == parentId }
-                    .map { row ->
-                        CategoryNode(
-                            id = row[Categories.id],
-                            name = row[Categories.name],
-                            parentId = row[Categories.parentId],
-                            pic = row[Categories.pic] ?: "",
-                            sortNum = row[Categories.sortNum],
-                            children = buildChildren(row[Categories.id])
-                        )
-                    }
-            }
-
-            val tree = roots.map { row ->
-                CategoryNode(
-                    id = row[Categories.id],
-                    name = row[Categories.name],
-                    parentId = row[Categories.parentId],
-                    pic = row[Categories.pic] ?: "",
-                    sortNum = row[Categories.sortNum],
-                    children = buildChildren(row[Categories.id])
-                )
-            }
-
-            call.respond(ok(tree))
+            call.respond(ok(list))
         }
     }
 

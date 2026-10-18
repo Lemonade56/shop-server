@@ -59,3 +59,10 @@ inline fun <T> okOr(
     value: T?,
     errorMessage: String = "数据不存在"
 ): BaseResponse<T> = if (value != null) ok(value) else fail(message = errorMessage)
+
+/**
+ * 增删改成功提示统一入口 —— 让 message 明确说明做了什么操作
+ * 用法：okMsg("新增商品") / okMsg("删除订单") / okMsg("提交评论")
+ */
+fun okMsg(action: String): BaseResponse<String> =
+    BaseResponse(data = "ok", code = SUCCESS, message = "${action}成功")

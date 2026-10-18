@@ -23,7 +23,7 @@ fun Route.configureNotificationRoutes() {
     authenticate("auth-jwt") {
 
         post("market/notice/page") {
-            @Serializable data class Req(val page: Int = 1, val size: Int = 10)
+            @Serializable data class Req(val page: Int = 1)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
             @Serializable data class NoticeItem(
@@ -38,7 +38,7 @@ fun Route.configureNotificationRoutes() {
 
                 val list = Notifications.selectAll().where { Notifications.userId eq userId }
                     .orderBy(Notifications.createTime, SortOrder.DESC)
-                    .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
+                    .limit(10).offset(((req.page - 1) * 10).toLong())
                     .map { row ->
                         NoticeItem(
                             id = row[Notifications.id],
@@ -69,7 +69,7 @@ fun Route.configureNotificationRoutes() {
         post("market/notice/read") {
             @Serializable data class Req(val id: Long)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
 
@@ -80,7 +80,7 @@ fun Route.configureNotificationRoutes() {
                     it[Notifications.isRead] = true
                 }
 
-                call.respond(ok("标记成功"))
+                call.respond(okMsg("标记已读"))
             }
         }
 
@@ -92,7 +92,7 @@ fun Route.configureNotificationRoutes() {
                     it[Notifications.isRead] = true
                 }
 
-                call.respond(ok("全部已读"))
+                call.respond(okMsg("标记全部已读"))
             }
         }
     }

@@ -82,7 +82,7 @@ fun Route.configureGoodsRoutes() {
     post("goods/spec/list") {
         @Serializable data class Req(val goodsId: Long)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         @Serializable data class SpecItem(val id: Long, val spec: String, val price: Int, val stock: Int)
 
@@ -102,7 +102,7 @@ fun Route.configureGoodsRoutes() {
     }
 
     post("goods/comment/page") {
-        @Serializable data class Req(val goodsId: Long = -1L, val page: Int = 1, val size: Int = 10)
+        @Serializable data class Req(val goodsId: Long = -1L, val page: Int = 1)
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
         @Serializable data class CommentItem(
@@ -116,7 +116,7 @@ fun Route.configureGoodsRoutes() {
             // 联查评论 + 用户昵称/头像
             val list = Comments.innerJoin(Users).selectAll().where { Comments.goodsId eq req.goodsId }
                 .orderBy(Comments.createTime, SortOrder.DESC)
-                .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
+                .limit(10).offset(((req.page - 1) * 10).toLong())
                 .map { row ->
                     CommentItem(
                         id = row[Comments.id],
@@ -133,12 +133,12 @@ fun Route.configureGoodsRoutes() {
     }
 
     post("goods/info/page") {
-        // 搜索 / 商品列表
+        // 商品列表 / 搜索
+        // 参数：keyword 搜索关键词，typeId 分类筛选，sort 排序，minPrice/maxPrice 价格区间，page 页码
         @Serializable data class Req(
-            val keyWord: String = "", val page: Int = 1, val size: Int = 10,
-            val typeId: List<Int>? = null, val order: String? = null,
-            val sort: String? = null, val featured: Boolean? = null,
-            val minPrice: String? = null, val maxPrice: String? = null
+            val keyword: String = "", val typeId: Long? = null,
+            val sort: String? = null, val minPrice: Int? = null, val maxPrice: Int? = null,
+            val page: Int = 1
         )
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
@@ -148,20 +148,31 @@ fun Route.configureGoodsRoutes() {
         )
 
         suspendTransaction {
-            val query = if (req.keyWord.isNotBlank()) {
-                GoodsTable.selectAll().where {
-                    (GoodsTable.status eq 1) and
-                        (GoodsTable.title like "%${req.keyWord}%")
-                }
-            } else {
-                GoodsTable.selectAll().where { GoodsTable.status eq 1 }
+            // 动态组合筛选条件（基础条件：上架商品）
+            var whereCond: Op<Boolean> = GoodsTable.status eq 1
+
+            if (req.keyword.isNotBlank()) {
+                whereCond = whereCond and (GoodsTable.title like "%${req.keyword}%")
+            }
+            req.typeId?.let { whereCond = whereCond and (GoodsTable.typeId eq it) }
+            req.minPrice?.let { whereCond = whereCond and (GoodsTable.price greater it) }
+            req.maxPrice?.let { whereCond = whereCond and (GoodsTable.price less it) }
+
+            val query = GoodsTable.selectAll().where { whereCond }
+
+            // 动态排序：price_asc 价格升序 / price_desc 价格降序 / sold_desc 销量优先 / newest 最新上架
+            val ordered = when (req.sort) {
+                "price_asc" -> query.orderBy(GoodsTable.price, SortOrder.ASC)
+                "price_desc" -> query.orderBy(GoodsTable.price, SortOrder.DESC)
+                "sold_desc" -> query.orderBy(GoodsTable.sold, SortOrder.DESC)
+                "newest" -> query.orderBy(GoodsTable.id, SortOrder.DESC)
+                else -> query.orderBy(GoodsTable.sortNum, SortOrder.ASC)
             }
 
-            val total = query.count()
+            val total = ordered.count()
 
-            val list = query
-                .orderBy(GoodsTable.sortNum, SortOrder.ASC)
-                .limit(req.size.coerceAtLeast(1))
+            val list = ordered
+                .limit(10).offset(((req.page - 1) * 10).toLong())
                 .map { row ->
                     MiniGoods(
                         id = row[GoodsTable.id],

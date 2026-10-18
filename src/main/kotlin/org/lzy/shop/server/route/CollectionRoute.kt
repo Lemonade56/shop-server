@@ -26,7 +26,7 @@ fun Route.configureCollectionRoutes() {
     authenticate("auth-jwt") {
 
         post("market/collect/page") {
-            @Serializable data class Req(val page: Int = 1, val size: Int = 20)
+            @Serializable data class Req(val page: Int = 1)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
             @Serializable data class CollectItem(
@@ -42,7 +42,7 @@ fun Route.configureCollectionRoutes() {
                 val list = Collections.innerJoin(GoodsTable)
                     .selectAll().where { Collections.userId eq userId }
                     .orderBy(Collections.createTime, SortOrder.DESC)
-                    .limit(req.size.coerceAtLeast(1))
+                    .limit(10).offset(((req.page - 1) * 10).toLong())
                     .map { row ->
                         CollectItem(
                             id = row[Collections.id],
@@ -61,7 +61,7 @@ fun Route.configureCollectionRoutes() {
         post("market/collect/add") {
             @Serializable data class Req(val goodsId: Long)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
             val now = System.currentTimeMillis().toString()
@@ -85,14 +85,14 @@ fun Route.configureCollectionRoutes() {
                     it[Collections.createTime] = now
                 }
 
-                call.respond(ok("收藏成功"))
+                call.respond(okMsg("收藏商品"))
             }
         }
 
         post("market/collect/delete") {
             @Serializable data class Req(val goodsId: Long)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
 
@@ -100,14 +100,14 @@ fun Route.configureCollectionRoutes() {
                 Collections.deleteWhere {
                     (Collections.userId eq userId) and (Collections.goodsId eq req.goodsId)
                 }
-                call.respond(ok("取消成功"))
+                call.respond(okMsg("取消收藏"))
             }
         }
 
         post("market/collect/isCollect") {
             @Serializable data class Req(val goodsId: Long)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
 

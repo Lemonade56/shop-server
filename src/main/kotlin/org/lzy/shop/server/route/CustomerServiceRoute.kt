@@ -20,18 +20,19 @@ fun Route.configureCustomerServiceRoutes() {
 
         post("cs/session/create") {
             // 创建客服会话，返回 sessionId
+            @Serializable data class SessionResult(val sessionId: String, val createTime: String)
             call.respond(
                 ok(
-                    mapOf(
-                        "sessionId" to "CS${System.currentTimeMillis()}",
-                        "createTime" to System.currentTimeMillis().toString()
+                    SessionResult(
+                        sessionId = "CS${System.currentTimeMillis()}",
+                        createTime = System.currentTimeMillis().toString()
                     )
                 )
             )
         }
 
         post("cs/msg/page") {
-            @Serializable data class Req(val sessionId: String = "", val page: Int = 1, val size: Int = 20)
+            @Serializable data class Req(val sessionId: String = "", val page: Int = 1)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
             @Serializable data class Msg(
@@ -58,7 +59,7 @@ fun Route.configureCustomerServiceRoutes() {
             val req = runCatching { call.receive<Req>() }.getOrNull()
 
             // Demo：客服自动回复
-            call.respond(ok("消息已发送"))
+            call.respond(okMsg("发送消息"))
         }
     }
 }

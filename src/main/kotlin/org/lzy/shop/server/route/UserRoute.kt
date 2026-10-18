@@ -10,10 +10,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import kotlinx.serialization.Serializable
 import org.lzy.shop.server.auth.JwtService
+import org.lzy.shop.server.auth.currentUserId
 import org.lzy.shop.server.auth.currentUserIdOrNull
-import org.lzy.shop.server.common.ResultCode
-import org.lzy.shop.server.common.fail
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Users
 import org.lzy.shop.server.config.Orders
 import org.jetbrains.exposed.v1.core.*
@@ -39,12 +38,28 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
  */
 fun Route.configureUserRoutes() {
 
+    // 登录/刷新 Token 统一返回结构
+    @Serializable data class LoginResult(
+        val token: String, val expire: String,
+        val refreshToken: String, val refreshExpire: String
+    )
+
+    fun buildLoginResult(userId: Long, phone: String): LoginResult {
+        val now = System.currentTimeMillis()
+        return LoginResult(
+            token = JwtService.generateAccessToken(userId, phone),
+            expire = (now + 30L * 24 * 3600 * 1000).toString(),
+            refreshToken = JwtService.generateRefreshToken(userId, phone),
+            refreshExpire = (now + 60L * 24 * 3600 * 1000).toString()
+        )
+    }
+
     // ===== 免登录接口 =====
 
     post("user/login/password") {
         @Serializable data class Req(val phone: String, val password: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
         if (req.phone.isBlank() || req.password.isBlank()) {
             return@post call.respond(fail<String>(message = "手机号或密码不能为空"))
@@ -57,19 +72,7 @@ fun Route.configureUserRoutes() {
                 return@suspendTransaction call.respond(fail<String>(message = "手机号或密码错误"))
             }
             val userId = user[Users.id]
-            val accessToken = JwtService.generateAccessToken(userId, req.phone)
-            val refreshToken = JwtService.generateRefreshToken(userId, req.phone)
-
-            call.respond(
-                ok(
-                    mapOf(
-                        "token" to accessToken,
-                        "expire" to (System.currentTimeMillis() + 30L * 24 * 3600 * 1000).toString(),
-                        "refreshToken" to refreshToken,
-                        "refreshExpire" to (System.currentTimeMillis() + 60L * 24 * 3600 * 1000).toString()
-                    )
-                )
-            )
+            call.respond(ok(buildLoginResult(userId, req.phone)))
         }
     }
 
@@ -82,50 +85,26 @@ fun Route.configureUserRoutes() {
         // 短信登录
         @Serializable data class Req(val phone: String, val smsCode: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
         suspendTransaction {
             val user = Users.selectAll().where { Users.phone eq req.phone }.firstOrNull()
                 ?: return@suspendTransaction call.respond(fail<String>(message = "该手机号未注册"))
 
             val userId = user[Users.id]
-            val accessToken = JwtService.generateAccessToken(userId, req.phone)
-            val refreshToken = JwtService.generateRefreshToken(userId, req.phone)
-
-            call.respond(
-                ok(
-                    mapOf(
-                        "token" to accessToken,
-                        "expire" to (System.currentTimeMillis() + 30L * 24 * 3600 * 1000).toString(),
-                        "refreshToken" to refreshToken,
-                        "refreshExpire" to (System.currentTimeMillis() + 60L * 24 * 3600 * 1000).toString()
-                    )
-                )
-            )
+            call.respond(ok(buildLoginResult(userId, req.phone)))
         }
     }
 
     post("user/login/refreshToken") {
         @Serializable data class Req(val refreshToken: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
         val (userId, phone) = JwtService.parseToken(req.refreshToken)
             ?: return@post call.respond(fail<String>(code = ResultCode.UNAUTHORIZED, message = "RefreshToken 无效"))
 
-        val newAccess = JwtService.generateAccessToken(userId, phone)
-        val newRefresh = JwtService.generateRefreshToken(userId, phone)
-
-        call.respond(
-            ok(
-                mapOf(
-                    "token" to newAccess,
-                    "expire" to (System.currentTimeMillis() + 30L * 24 * 3600 * 1000).toString(),
-                    "refreshToken" to newRefresh,
-                    "refreshExpire" to (System.currentTimeMillis() + 60L * 24 * 3600 * 1000).toString()
-                )
-            )
-        )
+        call.respond(ok(buildLoginResult(userId, phone)))
     }
 
     get("user/login/captcha") {
@@ -137,7 +116,7 @@ fun Route.configureUserRoutes() {
     post("user/login/smsCode") {
         @Serializable data class Req(val phone: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
         // 实际项目里这里会调短信服务商 API，Demo 模式下直接返回"已发送"
         call.respond(ok("验证码已发送（Demo 模式：123456）"))
@@ -146,10 +125,10 @@ fun Route.configureUserRoutes() {
     post("user/login/register") {
         @Serializable data class Req(val phone: String, val password: String, val smsCode: String = "")
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
         if (req.phone.isBlank() || req.password.isBlank()) {
-            return@post call.respond(fail<String>(message = "参数不完整"))
+            return@post call.respond(fail<String>(message = "手机号和密码不能为空"))
         }
 
         suspendTransaction {
@@ -164,14 +143,14 @@ fun Route.configureUserRoutes() {
                 it[Users.createTime] = System.currentTimeMillis().toString()
                 it[Users.updateTime] = System.currentTimeMillis().toString()
             }
-            call.respond(ok("注册成功"))
+            call.respond(okMsg("注册账号"))
         }
     }
 
     post("user/password/reset") {
         @Serializable data class Req(val phone: String, val smsCode: String, val newPassword: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
         suspendTransaction {
             val user = Users.selectAll().where { Users.phone eq req.phone }.firstOrNull()
@@ -180,7 +159,7 @@ fun Route.configureUserRoutes() {
                 it[Users.password] = req.newPassword  // TODO: BCrypt
                 it[Users.updateTime] = System.currentTimeMillis().toString()
             }
-            call.respond(ok("密码重置成功"))
+            call.respond(okMsg("重置密码"))
         }
     }
 
@@ -191,7 +170,7 @@ fun Route.configureUserRoutes() {
         post("user/password/change") {
             @Serializable data class Req(val oldPassword: String, val newPassword: String)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "参数错误"))
+                ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
             val userId = call.currentUserIdOrNull()
                 ?: return@post call.respond(fail<String>(code = ResultCode.UNAUTHORIZED, message = "未登录"))
@@ -206,7 +185,7 @@ fun Route.configureUserRoutes() {
                     it[Users.password] = req.newPassword
                     it[Users.updateTime] = System.currentTimeMillis().toString()
                 }
-                call.respond(ok("修改成功"))
+                call.respond(okMsg("修改密码"))
             }
         }
 
@@ -238,7 +217,11 @@ fun Route.configureUserRoutes() {
         }
 
         get("order/info/userCount") {
-            val userId = call.currentUserIdOrNull()
+            @Serializable data class OrderCount(
+                val unpaid: Long, val unshipped: Long, val unreceived: Long,
+                val uncomment: Long, val refunding: Long
+            )
+            val userId = call.currentUserId()
                 ?: return@get call.respond(fail<String>(code = ResultCode.UNAUTHORIZED, message = "未登录"))
 
             suspendTransaction {
@@ -247,17 +230,7 @@ fun Route.configureUserRoutes() {
                 val unreceived = Orders.selectAll().where { (Orders.userId eq userId) and (Orders.status eq 2) }.count()
                 val refunding = Orders.selectAll().where { (Orders.userId eq userId) and (Orders.status eq 5) }.count()
 
-                call.respond(
-                    ok(
-                        mapOf(
-                            "unpaid" to unpaid,
-                            "unshipped" to unshipped,
-                            "unreceived" to unreceived,
-                            "uncomment" to 0L,
-                            "refunding" to refunding
-                        )
-                    )
-                )
+                call.respond(ok(OrderCount(unpaid, unshipped, unreceived, 0L, refunding)))
             }
         }
 

@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopServer 后台管理</title>
+    <title>ShopServer 管理后台</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
 <!-- 登录页 -->
 <div id="loginPage" class="login-page">
     <div class="login-box">
-        <h1>🛒 ShopServer 后台</h1>
-        <p class="subtitle">请登录管理员账号</p>
+        <div class="login-logo">🛒</div>
+        <h1>ShopServer 管理后台</h1>
+        <p class="subtitle">小米生态电商管理系统</p>
         <div class="form-group">
             <label>用户名</label>
-            <input type="text" id="loginUsername" placeholder="admin" value="admin">
+            <input type="text" id="loginUsername" placeholder="请输入管理员账号" value="admin">
         </div>
         <div class="form-group">
             <label>密码</label>
-            <input type="password" id="loginPassword" placeholder="••••••" value="admin123">
+            <input type="password" id="loginPassword" placeholder="请输入密码" value="admin123">
         </div>
         <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
         <p id="loginError" class="error-msg"></p>
@@ -28,163 +30,375 @@
 
 <!-- 主界面 -->
 <div id="mainPage" class="main-page" style="display:none;">
+
     <!-- 侧边栏 -->
-    <aside class="sidebar">
-        <div class="logo">🛒 ShopServer</div>
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">
+            <span class="logo-icon">🛒</span>
+            <span class="logo-text">ShopServer</span>
+        </div>
+
         <nav class="nav">
-            <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-                <span class="icon">📊</span><span>仪表盘</span>
-            </a>
-            <a class="nav-item" data-page="goods" onclick="showPage('goods')">
-                <span class="icon">📦</span><span>商品管理</span>
-            </a>
-            <a class="nav-item" data-page="orders" onclick="showPage('orders')">
-                <span class="icon">📋</span><span>订单管理</span>
-            </a>
-            <a class="nav-item" data-page="users" onclick="showPage('users')">
-                <span class="icon">👥</span><span>用户管理</span>
-            </a>
-            <a class="nav-item" data-page="coupons" onclick="showPage('coupons')">
-                <span class="icon">🎟️</span><span>优惠券管理</span>
-            </a>
+            <div class="nav-group">
+                <div class="nav-group-title">概览</div>
+                <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                    <span>仪表盘</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">商品管理</div>
+                <a class="nav-item" data-page="goods" onclick="showPage('goods')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    <span>商品列表</span>
+                </a>
+                <a class="nav-item" data-page="categories" onclick="showPage('categories')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg>
+                    <span>分类管理</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">订单中心</div>
+                <a class="nav-item" data-page="orders" onclick="showPage('orders')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span>订单管理</span>
+                </a>
+                <a class="nav-item" data-page="coupons" onclick="showPage('coupons')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                    <span>优惠券管理</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">客户中心</div>
+                <a class="nav-item" data-page="users" onclick="showPage('users')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>用户管理</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">营销推广</div>
+                <a class="nav-item" data-page="banners" onclick="showPage('banners')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                    <span>轮播图管理</span>
+                </a>
+                <a class="nav-item" data-page="keywords" onclick="showPage('keywords')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <span>搜索关键词</span>
+                </a>
+            </div>
         </nav>
+
         <div class="sidebar-footer">
-            <span id="adminName">admin</span>
-            <button class="btn-logout" onclick="doLogout()">退出</button>
+            <div class="admin-info">
+                <div class="admin-avatar">A</div>
+                <div>
+                    <div class="admin-name" id="adminName">admin</div>
+                    <div class="admin-role">超级管理员</div>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="doLogout()" title="退出登录">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            </button>
         </div>
     </aside>
 
-    <!-- 内容区 -->
-    <main class="content">
-        <!-- 仪表盘 -->
-        <section id="page-dashboard" class="page">
-            <h2 class="page-title">📊 数据概览</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="statGoods">0</div>
-                    <div class="stat-label">商品总数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="statOrders">0</div>
-                    <div class="stat-label">订单总数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="statUsers">0</div>
-                    <div class="stat-label">用户总数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="statSales">¥0</div>
-                    <div class="stat-label">累计销售额</div>
-                </div>
-            </div>
-        </section>
+    <!-- 主区域 -->
+    <div class="main-wrapper">
 
-        <!-- 商品管理 -->
-        <section id="page-goods" class="page" style="display:none;">
-            <div class="page-header">
-                <h2 class="page-title">📦 商品管理</h2>
-                <button class="btn btn-primary" onclick="openGoodsModal()">+ 新增商品</button>
-            </div>
-            <div class="toolbar">
-                <input type="text" id="goodsKeyword" placeholder="搜索商品名称...">
-                <button class="btn" onclick="loadGoods()">搜索</button>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>商品图</th><th>标题</th><th>价格</th>
-                        <th>库存/销量</th><th>状态</th><th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="goodsTableBody"></tbody>
-            </table>
-        </section>
+        <!-- 顶部栏 -->
+        <header class="topbar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()" title="收起侧边栏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
+            </button>
 
-        <!-- 订单管理 -->
-        <section id="page-orders" class="page" style="display:none;">
-            <h2 class="page-title">📋 订单管理</h2>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>订单号</th><th>用户</th><th>金额</th>
-                        <th>状态</th><th>创建时间</th><th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="ordersTableBody"></tbody>
-            </table>
-        </section>
+            <div class="breadcrumb" id="breadcrumb">仪表盘</div>
 
-        <!-- 用户管理 -->
-        <section id="page-users" class="page" style="display:none;">
-            <h2 class="page-title">👥 用户管理</h2>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>手机号</th><th>昵称</th><th>状态</th>
-                        <th>注册时间</th><th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTableBody"></tbody>
-            </table>
-        </section>
-
-        <!-- 优惠券管理 -->
-        <section id="page-coupons" class="page" style="display:none;">
-            <div class="page-header">
-                <h2 class="page-title">🎟️ 优惠券管理</h2>
-                <button class="btn btn-primary" onclick="openCouponModal()">+ 新增优惠券</button>
+            <div class="topbar-right">
+                <div class="global-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="text" placeholder="搜索商品、订单、用户..." id="globalSearch">
+                </div>
+                <button class="topbar-btn" title="通知">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <span class="badge-dot" id="notifyDot" style="display:none;"></span>
+                </button>
             </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>名称</th><th>减免</th><th>最低消费</th>
-                        <th>剩余</th><th>有效期</th><th>状态</th>
-                    </tr>
-                </thead>
-                <tbody id="couponsTableBody"></tbody>
-            </table>
-        </section>
-    </main>
+        </header>
+
+        <!-- 内容区 -->
+        <main class="content">
+
+            <!-- 仪表盘 -->
+            <section id="page-dashboard" class="page">
+                <div class="page-header-row">
+                    <h2 class="page-title">数据概览</h2>
+                    <span class="page-subtitle" id="dashboardDate"></span>
+                </div>
+
+                <!-- 统计卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-card-blue">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statGoods">0</div>
+                            <div class="stat-label">商品总数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card-green">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statOrders">0</div>
+                            <div class="stat-label">订单总数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card-orange">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statSales">¥0</div>
+                            <div class="stat-label">累计销售额</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card-purple">
+                        <div class="stat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statUsers">0</div>
+                            <div class="stat-label">用户总数</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表区 -->
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>销售趋势</h3>
+                            <span class="chart-hint">近 7 天</span>
+                        </div>
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>订单状态分布</h3>
+                        </div>
+                        <canvas id="orderStatusChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 下方两栏 -->
+                <div class="bottom-grid">
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h3>热销商品 TOP 5</h3>
+                        </div>
+                        <div class="top-goods-list" id="topGoodsList"></div>
+                    </div>
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h3>最近订单</h3>
+                        </div>
+                        <div class="recent-orders" id="recentOrdersList"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 商品管理 -->
+            <section id="page-goods" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">商品管理</h2>
+                    <button class="btn btn-primary" onclick="openGoodsModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        新增商品
+                    </button>
+                </div>
+                <div class="toolbar">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" id="goodsKeyword" placeholder="搜索商品名称...">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadGoods()">搜索</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>商品图</th><th>标题</th><th>价格</th><th>销量</th><th>状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="goodsTableBody"></tbody>
+                </table>
+                <div class="pagination" id="goodsPagination"></div>
+            </section>
+
+            <!-- 订单管理 -->
+            <section id="page-orders" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">订单管理</h2>
+                </div>
+                <div class="status-tabs">
+                    <button class="status-tab active" data-status="all" onclick="filterOrders('all')">全部</button>
+                    <button class="status-tab" data-status="0" onclick="filterOrders(0)">待支付</button>
+                    <button class="status-tab" data-status="1" onclick="filterOrders(1)">已支付</button>
+                    <button class="status-tab" data-status="2" onclick="filterOrders(2)">已发货</button>
+                    <button class="status-tab" data-status="3" onclick="filterOrders(3)">已完成</button>
+                    <button class="status-tab" data-status="4" onclick="filterOrders(4)">已取消</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>订单号</th><th>用户ID</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
+                <div class="pagination" id="ordersPagination"></div>
+            </section>
+
+            <!-- 用户管理 -->
+            <section id="page-users" class="page" style="display:none;">
+                <h2 class="page-title">用户管理</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>手机号</th><th>昵称</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+                <div class="pagination" id="usersPagination"></div>
+            </section>
+
+            <!-- 优惠券管理 -->
+            <section id="page-coupons" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">优惠券管理</h2>
+                    <button class="btn btn-primary" onclick="openCouponModal()">+ 新增优惠券</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>名称</th><th>减免</th><th>最低消费</th><th>剩余</th><th>有效期</th><th>状态</th></tr>
+                    </thead>
+                    <tbody id="couponsTableBody"></tbody>
+                </table>
+                <div class="pagination" id="couponsPagination"></div>
+            </section>
+
+            <!-- 分类管理 -->
+            <section id="page-categories" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">分类管理</h2>
+                    <button class="btn btn-primary" onclick="openCategoryModal()">+ 新增分类</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>名称</th><th>父分类</th><th>排序</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="categoriesTableBody"></tbody>
+                </table>
+            </section>
+
+            <!-- 轮播图管理 -->
+            <section id="page-banners" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">轮播图管理</h2>
+                    <button class="btn btn-primary" onclick="openBannerModal()">+ 新增轮播图</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>图片</th><th>标题</th><th>排序</th><th>状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="bannersTableBody"></tbody>
+                </table>
+            </section>
+
+            <!-- 搜索关键词 -->
+            <section id="page-keywords" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">搜索关键词</h2>
+                    <button class="btn btn-primary" onclick="openKeywordModal()">+ 新增关键词</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>关键词</th><th>搜索次数</th><th>热门</th><th>排序</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="keywordsTableBody"></tbody>
+                </table>
+            </section>
+
+        </main>
+    </div>
 </div>
 
-<!-- 商品弹窗 -->
+<!-- ===== 弹窗 ===== -->
+<div id="categoryModal" class="modal" style="display:none;">
+    <div class="modal-box">
+        <h3 id="categoryModalTitle">新增分类</h3>
+        <div class="form-row">
+            <div class="form-group"><label>名称</label><input type="text" id="category_name"></div>
+            <div class="form-group"><label>父分类ID（0=顶级）</label><input type="number" id="category_parentId" value="0"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>图标URL</label><input type="text" id="category_pic"></div>
+            <div class="form-group"><label>排序</label><input type="number" id="category_sortNum" value="0"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('categoryModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveCategory()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="bannerModal" class="modal" style="display:none;">
+    <div class="modal-box">
+        <h3 id="bannerModalTitle">新增轮播图</h3>
+        <div class="form-group"><label>图片URL</label><input type="text" id="banner_pic"></div>
+        <div class="form-row">
+            <div class="form-group"><label>跳转链接（选填）</label><input type="text" id="banner_url"></div>
+            <div class="form-group"><label>标题（选填）</label><input type="text" id="banner_title"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>排序</label><input type="number" id="banner_sortNum" value="0"></div>
+            <div class="form-group"><label>状态</label><select id="banner_status"><option value="1">启用</option><option value="0">禁用</option></select></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('bannerModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveBanner()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="keywordModal" class="modal" style="display:none;">
+    <div class="modal-box">
+        <h3>新增关键词</h3>
+        <div class="form-row">
+            <div class="form-group"><label>关键词</label><input type="text" id="keyword_keyword"></div>
+            <div class="form-group"><label>排序</label><input type="number" id="keyword_sortNum" value="0"></div>
+        </div>
+        <div class="form-group"><label><input type="checkbox" id="keyword_isHot"> 标记为热门</label></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('keywordModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveKeyword()">保存</button>
+        </div>
+    </div>
+</div>
+
 <div id="goodsModal" class="modal" style="display:none;">
     <div class="modal-box">
         <h3 id="goodsModalTitle">新增商品</h3>
         <div class="form-row">
-            <div class="form-group">
-                <label>分类ID</label>
-                <input type="number" id="goods_typeId" value="1">
-            </div>
-            <div class="form-group">
-                <label>价格（分）</label>
-                <input type="number" id="goods_price" value="0">
-            </div>
+            <div class="form-group"><label>分类ID</label><input type="number" id="goods_typeId" value="1"></div>
+            <div class="form-group"><label>价格（分）</label><input type="number" id="goods_price" value="0"></div>
         </div>
-        <div class="form-group">
-            <label>商品标题</label>
-            <input type="text" id="goods_title" placeholder="请输入商品标题">
-        </div>
-        <div class="form-group">
-            <label>副标题</label>
-            <input type="text" id="goods_subTitle" placeholder="选填">
-        </div>
-        <div class="form-group">
-            <label>主图 URL</label>
-            <input type="text" id="goods_mainPic" placeholder="https://...">
-        </div>
+        <div class="form-group"><label>商品标题</label><input type="text" id="goods_title"></div>
+        <div class="form-group"><label>副标题</label><input type="text" id="goods_subTitle"></div>
+        <div class="form-group"><label>主图 URL</label><input type="text" id="goods_mainPic"></div>
         <div class="form-row">
-            <div class="form-group">
-                <label>上架状态</label>
-                <select id="goods_status">
-                    <option value="1">上架</option>
-                    <option value="0">下架</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>排序</label>
-                <input type="number" id="goods_sortNum" value="0">
-            </div>
+            <div class="form-group"><label>上架状态</label><select id="goods_status"><option value="1">上架</option><option value="0">下架</option></select></div>
+            <div class="form-group"><label>排序</label><input type="number" id="goods_sortNum" value="0"></div>
         </div>
         <div class="modal-actions">
             <button class="btn" onclick="closeModal('goodsModal')">取消</button>
@@ -193,38 +407,19 @@
     </div>
 </div>
 
-<!-- 优惠券弹窗 -->
 <div id="couponModal" class="modal" style="display:none;">
     <div class="modal-box">
         <h3>新增优惠券</h3>
         <div class="form-row">
-            <div class="form-group">
-                <label>减免金额（分）</label>
-                <input type="number" id="coupon_discount" value="0">
-            </div>
-            <div class="form-group">
-                <label>最低消费（分）</label>
-                <input type="number" id="coupon_minAmount" value="0">
-            </div>
+            <div class="form-group"><label>减免金额（分）</label><input type="number" id="coupon_discount" value="0"></div>
+            <div class="form-group"><label>最低消费（分）</label><input type="number" id="coupon_minAmount" value="0"></div>
         </div>
-        <div class="form-group">
-            <label>名称</label>
-            <input type="text" id="coupon_name" placeholder="如：满200减20">
-        </div>
+        <div class="form-group"><label>名称</label><input type="text" id="coupon_name"></div>
         <div class="form-row">
-            <div class="form-group">
-                <label>开始时间</label>
-                <input type="date" id="coupon_startTime">
-            </div>
-            <div class="form-group">
-                <label>结束时间</label>
-                <input type="date" id="coupon_endTime">
-            </div>
+            <div class="form-group"><label>开始时间</label><input type="date" id="coupon_startTime"></div>
+            <div class="form-group"><label>结束时间</label><input type="date" id="coupon_endTime"></div>
         </div>
-        <div class="form-group">
-            <label>发放总量</label>
-            <input type="number" id="coupon_totalCount" value="1000">
-        </div>
+        <div class="form-group"><label>发放总量</label><input type="number" id="coupon_totalCount" value="1000"></div>
         <div class="modal-actions">
             <button class="btn" onclick="closeModal('couponModal')">取消</button>
             <button class="btn btn-primary" onclick="saveCoupon()">保存</button>

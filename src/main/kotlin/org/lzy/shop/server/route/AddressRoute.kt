@@ -11,9 +11,7 @@ import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.lzy.shop.server.auth.currentUserId
-import org.lzy.shop.server.common.ResultCode
-import org.lzy.shop.server.common.fail
-import org.lzy.shop.server.common.ok
+import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Addresses
 
 /**
@@ -61,7 +59,7 @@ fun Route.configureAddressRoutes() {
         }
 
         post("user/address/list") {
-            @Serializable data class Req(val page: Int = 1, val size: Int = 20)
+            @Serializable data class Req(val page: Int = 1)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
             @Serializable data class Address(
@@ -99,7 +97,7 @@ fun Route.configureAddressRoutes() {
                 val detail: String, val isDefault: Boolean = false
             )
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
 
@@ -122,7 +120,7 @@ fun Route.configureAddressRoutes() {
                     it[Addresses.isDefault] = req.isDefault
                 }
 
-                call.respond(ok("添加成功"))
+                call.respond(okMsg("新增地址"))
             }
         }
 
@@ -133,7 +131,7 @@ fun Route.configureAddressRoutes() {
                 val detail: String, val isDefault: Boolean = false
             )
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
 
@@ -157,7 +155,7 @@ fun Route.configureAddressRoutes() {
                 if (updated == 0) {
                     call.respond(fail<String>(ResultCode.NOT_FOUND, "地址不存在"))
                 } else {
-                    call.respond(ok("更新成功"))
+                    call.respond(okMsg("修改地址"))
                 }
             }
         }
@@ -165,7 +163,7 @@ fun Route.configureAddressRoutes() {
         post("user/address/delete") {
             @Serializable data class Req(val id: Long)
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
 
@@ -177,7 +175,7 @@ fun Route.configureAddressRoutes() {
                 if (deleted == 0) {
                     call.respond(fail<String>(ResultCode.NOT_FOUND, "地址不存在"))
                 } else {
-                    call.respond(ok("删除成功"))
+                    call.respond(okMsg("删除地址"))
                 }
             }
         }

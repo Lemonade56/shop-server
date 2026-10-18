@@ -16,8 +16,12 @@ import org.lzy.shop.server.auth.AdminAuth
 import org.lzy.shop.server.auth.installAdminAuth
 import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.AppConfig
+import org.lzy.shop.server.config.Banners
+import org.lzy.shop.server.config.Categories
 import org.lzy.shop.server.config.Coupons
+import org.lzy.shop.server.config.OrderItems
 import org.lzy.shop.server.config.Orders
+import org.lzy.shop.server.config.SearchKeywords
 import org.lzy.shop.server.config.Users
 import org.lzy.shop.server.config.Goods as GoodsTable
 
@@ -49,19 +53,40 @@ fun Route.configureAdminRoutes() {
     // ===== 登录 =====
     post("login") {
         @Serializable data class Req(val username: String, val password: String)
+        @Serializable data class LoginResult(val token: String, val username: String)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         if (req.username == AppConfig.Admin.USERNAME && req.password == AppConfig.Admin.PASSWORD) {
             val token = AdminAuth.issueToken(req.username)
-            call.respond(ok(mapOf("token" to token, "username" to req.username)))
+            call.respond(ok(LoginResult(token = token, username = req.username)))
         } else {
             call.respond(fail<String>(ResultCode.UNAUTHORIZED, "用户名或密码错误"))
         }
     }
 
-    // ===== 统计 =====
+    // ===== 统计（含图表数据） =====
     get("dashboard/stats") {
+        @Serializable data class DaySales(val date: String, val amount: Long)
+        @Serializable data class StatusCount(val status: Int, val label: String, val count: Long)
+        @Serializable data class TopGoods(val id: Long, val title: String, val pic: String, val sold: Long)
+        @Serializable data class RecentOrder(
+            val id: Long, val orderNo: String, val userId: Long,
+            val totalPrice: Int, val status: Int, val createTime: String
+        )
+        @Serializable data class DashboardStats(
+            val goodsCount: Long,
+            val orderCount: Long,
+            val userCount: Long,
+            val couponCount: Long,
+            val paidOrders: Long,
+            val totalSales: Long,
+            val sales7Days: List<DaySales>? = null,
+            val orderStatusDist: List<StatusCount>? = null,
+            val topGoods: List<TopGoods>? = null,
+            val recentOrders: List<RecentOrder>? = null
+        )
+
         suspendTransaction {
             val goodsCount = GoodsTable.selectAll().count()
             val orderCount = Orders.selectAll().count()
@@ -71,25 +96,74 @@ fun Route.configureAdminRoutes() {
             val totalSales = Orders.selectAll().where { Orders.status inList listOf(1, 2, 3) }
                 .sumOf { it[Orders.totalPrice] }.toLong()
 
-            call.respond(
-                ok(
-                    mapOf(
-                        "goodsCount" to goodsCount,
-                        "orderCount" to orderCount,
-                        "userCount" to userCount,
-                        "couponCount" to couponCount,
-                        "paidOrders" to paidOrders,
-                        "totalSales" to totalSales
+            // --- 近7天每日销售额（客户端按 createTime 毫秒时间戳分组） ---
+            val nowMs = System.currentTimeMillis()
+            val dayMs = 24 * 60 * 60 * 1000L
+            val daySalesMap = LinkedHashMap<String, Long>()
+            val fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            for (i in 6 downTo 0) {
+                val dayStr = java.time.Instant.ofEpochMilli(nowMs - i * dayMs)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(fmt)
+                daySalesMap[dayStr] = 0L
+            }
+            Orders.selectAll().where { Orders.status inList listOf(1, 2, 3) }.forEach { row ->
+                val ct = row[Orders.createTime].toLongOrNull() ?: return@forEach
+                if (nowMs - ct <= 7 * dayMs) {
+                    val dayStr = java.time.Instant.ofEpochMilli(ct)
+                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(fmt)
+                    daySalesMap[dayStr] = (daySalesMap[dayStr] ?: 0L) + row[Orders.totalPrice]
+                }
+            }
+            val sales7Days = daySalesMap.map { (date, amount) -> DaySales(date, amount) }
+
+            // --- 订单状态分布 ---
+            val statusLabels = mapOf(0 to "待支付", 1 to "已支付", 2 to "已发货", 3 to "已签收", 4 to "已取消")
+            val statusDist = Orders.select(Orders.status, Orders.id.count())
+                .groupBy(Orders.status)
+                .associate { it[Orders.status] to it[Orders.id.count()] }
+            val orderStatusDist = statusLabels.keys.sorted().map { s ->
+                StatusCount(s, statusLabels[s]!!, statusDist[s] ?: 0L)
+            }
+
+            // --- 热销商品 TOP5 ---
+            val topGoods = GoodsTable.selectAll()
+                .orderBy(GoodsTable.sold, SortOrder.DESC)
+                .limit(5)
+                .map { row ->
+                    TopGoods(
+                        id = row[GoodsTable.id],
+                        title = row[GoodsTable.title],
+                        pic = row[GoodsTable.mainPic],
+                        sold = row[GoodsTable.sold].toLong()
                     )
-                )
-            )
+                }
+
+            // --- 最近 5 条订单 ---
+            val recentOrders = Orders.selectAll()
+                .orderBy(Orders.id, SortOrder.DESC)
+                .limit(5)
+                .map { row ->
+                    RecentOrder(
+                        id = row[Orders.id],
+                        orderNo = row[Orders.orderNo],
+                        userId = row[Orders.userId],
+                        totalPrice = row[Orders.totalPrice],
+                        status = row[Orders.status],
+                        createTime = row[Orders.createTime]
+                    )
+                }
+
+            call.respond(ok(DashboardStats(
+                goodsCount, orderCount, userCount, couponCount, paidOrders, totalSales,
+                sales7Days, orderStatusDist, topGoods, recentOrders
+            )))
         }
     }
 
     // ===== 商品管理 =====
     get("goods/list") {
-        @Serializable data class Req(val keyword: String = "", val page: Int = 1, val size: Int = 20)
-        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
+        val keyword = call.request.queryParameters["keyword"] ?: ""
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
         @Serializable data class GoodsItem(
             val id: Long, val typeId: Long, val title: String,
@@ -98,18 +172,18 @@ fun Route.configureAdminRoutes() {
         )
 
         suspendTransaction {
-            val total = if (req.keyword.isNotBlank()) {
-                GoodsTable.selectAll().where { GoodsTable.title like "%${req.keyword}%" }.count()
+            val total = if (keyword.isNotBlank()) {
+                GoodsTable.selectAll().where { GoodsTable.title like "%$keyword%" }.count()
             } else {
                 GoodsTable.selectAll().count()
             }
 
-            val list = if (req.keyword.isNotBlank()) {
-                GoodsTable.selectAll().where { GoodsTable.title like "%${req.keyword}%" }
+            val list = if (keyword.isNotBlank()) {
+                GoodsTable.selectAll().where { GoodsTable.title like "%$keyword%" }
             } else {
                 GoodsTable.selectAll()
             }.orderBy(GoodsTable.id, SortOrder.DESC)
-                .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
+                .limit(10).offset(((page - 1) * 10).toLong())
                 .map { row ->
                     GoodsItem(
                         id = row[GoodsTable.id],
@@ -137,7 +211,7 @@ fun Route.configureAdminRoutes() {
             val status: Int = 1, val sortNum: Int = 0
         )
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         val now = System.currentTimeMillis().toString()
 
@@ -159,7 +233,7 @@ fun Route.configureAdminRoutes() {
                 it[GoodsTable.updateTime] = now
             }
 
-            call.respond(ok("添加成功"))
+            call.respond(okMsg("新增商品"))
         }
     }
 
@@ -172,7 +246,7 @@ fun Route.configureAdminRoutes() {
             val sortNum: Int? = null
         )
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         val now = System.currentTimeMillis().toString()
 
@@ -191,17 +265,17 @@ fun Route.configureAdminRoutes() {
             }
 
             if (updated == 0) {
-                call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
-            } else {
-                call.respond(ok("更新成功"))
+                    call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+                } else {
+                    call.respond(okMsg("更新商品"))
+                }
             }
         }
-    }
 
-    delete("goods/delete") {
+        delete("goods/delete") {
         @Serializable data class Req(val id: Long)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         suspendTransaction {
             // 软删除：把状态改成 0（下架）
@@ -210,17 +284,17 @@ fun Route.configureAdminRoutes() {
             }
 
             if (updated == 0) {
-                call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
-            } else {
-                call.respond(ok("删除成功"))
+                    call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+                } else {
+                    call.respond(okMsg("删除商品"))
+                }
             }
         }
-    }
 
-    // ===== 订单管理 =====
+        // ===== 订单管理 =====
     get("order/list") {
-        @Serializable data class Req(val status: Int? = null, val page: Int = 1, val size: Int = 20)
-        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
+        val status = call.request.queryParameters["status"]?.toIntOrNull()
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
         @Serializable data class OrderItem(
             val id: Long, val orderNo: String, val userId: Long,
@@ -229,20 +303,20 @@ fun Route.configureAdminRoutes() {
         )
 
         suspendTransaction {
-            val total = if (req.status != null) {
-                Orders.selectAll().where { Orders.status eq req.status }.count()
+            val total = if (status != null) {
+                Orders.selectAll().where { Orders.status eq status }.count()
             } else {
                 Orders.selectAll().count()
             }
 
-            val query = if (req.status != null) {
-                Orders.selectAll().where { Orders.status eq req.status }
+            val query = if (status != null) {
+                Orders.selectAll().where { Orders.status eq status }
             } else {
                 Orders.selectAll()
             }
 
             val list = query.orderBy(Orders.createTime, SortOrder.DESC)
-                .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
+                .limit(10).offset(((page - 1) * 10).toLong())
                 .map { row ->
                     OrderItem(
                         id = row[Orders.id],
@@ -264,7 +338,7 @@ fun Route.configureAdminRoutes() {
     post("order/ship") {
         @Serializable data class Req(val orderId: Long)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         suspendTransaction {
             val updated = Orders.update({ Orders.id eq req.orderId }) {
@@ -273,17 +347,72 @@ fun Route.configureAdminRoutes() {
             }
 
             if (updated == 0) {
-                call.respond(fail<String>(ResultCode.NOT_FOUND, "订单不存在"))
-            } else {
-                call.respond(ok("发货成功"))
+                    call.respond(fail<String>(ResultCode.NOT_FOUND, "订单不存在"))
+                } else {
+                    call.respond(okMsg("订单发货"))
+                }
             }
+        }
+
+    get("order/detail") {
+        val orderId = call.request.queryParameters["id"]?.toLongOrNull()
+            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "id 参数无效"))
+
+        @Serializable data class OrderGoods(
+            val goodsId: Long, val title: String, val mainPic: String,
+            val specInfo: String? = null, val price: Int, val quantity: Int
+        )
+        @Serializable data class OrderDetail(
+            val id: Long, val orderNo: String, val userId: Long, val status: Int,
+            val totalPrice: Int, val payPrice: Int, val couponId: Long?,
+            val remark: String, val address: String,
+            val createTime: String, val payTime: String?, val shipTime: String?,
+            val receiveTime: String?, val goodsList: List<OrderGoods>
+        )
+
+        suspendTransaction {
+            val orderRow = Orders.selectAll().where { Orders.id eq orderId }.firstOrNull()
+                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "订单不存在"))
+
+            val goodsList = OrderItems.selectAll().where { OrderItems.orderId eq orderId }
+                .map { item ->
+                    OrderGoods(
+                        goodsId = item[OrderItems.goodsId],
+                        title = item[OrderItems.goodsTitle],
+                        mainPic = item[OrderItems.goodsMainPic],
+                        specInfo = item[OrderItems.specInfo],
+                        price = item[OrderItems.price],
+                        quantity = item[OrderItems.quantity]
+                    )
+                }
+
+            call.respond(
+                ok(
+                    OrderDetail(
+                        id = orderRow[Orders.id],
+                        orderNo = orderRow[Orders.orderNo],
+                        userId = orderRow[Orders.userId],
+                        status = orderRow[Orders.status],
+                        totalPrice = orderRow[Orders.totalPrice],
+                        payPrice = orderRow[Orders.payPrice],
+                        couponId = orderRow[Orders.couponId],
+                        remark = orderRow[Orders.remark],
+                        address = orderRow[Orders.addressSnapshot],
+                        createTime = orderRow[Orders.createTime],
+                        payTime = orderRow[Orders.payTime],
+                        shipTime = orderRow[Orders.shipTime],
+                        receiveTime = orderRow[Orders.receiveTime],
+                        goodsList = goodsList
+                    )
+                )
+            )
         }
     }
 
-    // ===== 用户管理 =====
+        // ===== 用户管理 =====
     get("user/list") {
-        @Serializable data class Req(val keyword: String = "", val page: Int = 1, val size: Int = 20)
-        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
+        val keyword = call.request.queryParameters["keyword"] ?: ""
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
         @Serializable data class UserItem(
             val id: Long, val phone: String, val nickname: String,
@@ -291,11 +420,18 @@ fun Route.configureAdminRoutes() {
         )
 
         suspendTransaction {
-            val total = Users.selectAll().count()
+            val total = if (keyword.isNotBlank()) {
+                Users.selectAll().where { Users.phone like "%$keyword%" }.count()
+            } else {
+                Users.selectAll().count()
+            }
 
-            val list = Users.selectAll()
-                .orderBy(Users.id, SortOrder.DESC)
-                .limit(req.size.coerceAtLeast(1)).offset(((req.page - 1) * req.size.coerceAtLeast(1)).toLong())
+            val list = if (keyword.isNotBlank()) {
+                Users.selectAll().where { Users.phone like "%$keyword%" }
+            } else {
+                Users.selectAll()
+            }.orderBy(Users.id, SortOrder.DESC)
+                .limit(10).offset(((page - 1) * 10).toLong())
                 .map { row ->
                     UserItem(
                         id = row[Users.id],
@@ -313,7 +449,7 @@ fun Route.configureAdminRoutes() {
     post("user/updateStatus") {
         @Serializable data class Req(val userId: Long, val status: Int)
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         suspendTransaction {
             val updated = Users.update({ Users.id eq req.userId }) {
@@ -322,10 +458,10 @@ fun Route.configureAdminRoutes() {
             }
 
             if (updated == 0) {
-                call.respond(fail<String>(ResultCode.NOT_FOUND, "用户不存在"))
-            } else {
-                call.respond(ok("更新成功"))
-            }
+                    call.respond(fail<String>(ResultCode.NOT_FOUND, "用户不存在"))
+                } else {
+                    call.respond(okMsg("更新用户状态"))
+                }
         }
     }
 
@@ -364,7 +500,7 @@ fun Route.configureAdminRoutes() {
             val status: Int = 1
         )
         val req = runCatching { call.receive<Req>() }.getOrNull()
-            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         suspendTransaction {
             Coupons.insert {
@@ -378,7 +514,240 @@ fun Route.configureAdminRoutes() {
                 it[Coupons.status] = req.status
             }
 
-            call.respond(ok("添加成功"))
+            call.respond(okMsg("新增优惠券"))
+        }
+    }
+
+    put("coupon/update") {
+        @Serializable data class Req(
+            val id: Long, val name: String? = null, val discount: Int? = null,
+            val minAmount: Int? = null, val totalCount: Int? = null,
+            val startTime: String? = null, val endTime: String? = null, val status: Int? = null
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = Coupons.update({ Coupons.id eq req.id }) {
+                req.name?.let { v -> it[Coupons.name] = v }
+                req.discount?.let { v -> it[Coupons.discount] = v }
+                req.minAmount?.let { v -> it[Coupons.minAmount] = v }
+                req.totalCount?.let { v -> it[Coupons.totalCount] = v }
+                req.startTime?.let { v -> it[Coupons.startTime] = v }
+                req.endTime?.let { v -> it[Coupons.endTime] = v }
+                req.status?.let { v -> it[Coupons.status] = v }
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "优惠券不存在"))
+            else call.respond(okMsg("更新优惠券"))
+        }
+    }
+
+    delete("coupon/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val deleted = Coupons.deleteWhere { Coupons.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "优惠券不存在"))
+            else call.respond(okMsg("删除优惠券"))
+        }
+    }
+
+    // ===== 分类管理 =====
+    get("category/list") {
+        @Serializable data class CategoryItem(
+            val id: Long, val name: String, val parentId: Long,
+            val pic: String, val sortNum: Int
+        )
+        suspendTransaction {
+            val list = Categories.selectAll()
+                .orderBy(Categories.parentId, SortOrder.ASC)
+                .orderBy(Categories.sortNum, SortOrder.ASC)
+                .map { row ->
+                    CategoryItem(
+                        id = row[Categories.id],
+                        name = row[Categories.name],
+                        parentId = row[Categories.parentId],
+                        pic = (row[Categories.pic] ?: ""),
+                        sortNum = row[Categories.sortNum]
+                    )
+                }
+            call.respond(ok(list))
+        }
+    }
+
+    post("category/add") {
+        @Serializable data class Req(val name: String, val parentId: Long = 0, val pic: String = "", val sortNum: Int = 0)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            Categories.insert {
+                it[Categories.name] = req.name
+                it[Categories.parentId] = req.parentId
+                it[Categories.pic] = req.pic
+                it[Categories.sortNum] = req.sortNum
+            }
+            call.respond(okMsg("新增分类"))
+        }
+    }
+
+    put("category/update") {
+        @Serializable data class Req(val id: Long, val name: String? = null, val pic: String? = null, val sortNum: Int? = null)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = Categories.update({ Categories.id eq req.id }) {
+                req.name?.let { v -> it[Categories.name] = v }
+                req.pic?.let { v -> it[Categories.pic] = v }
+                req.sortNum?.let { v -> it[Categories.sortNum] = v }
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "分类不存在"))
+            else call.respond(okMsg("修改分类"))
+        }
+    }
+
+    delete("category/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val hasChild = Categories.selectAll().where { Categories.parentId eq req.id }.count()
+            if (hasChild > 0) {
+                return@suspendTransaction call.respond(fail<String>(ResultCode.BUSINESS_ERROR, "存在子分类，无法删除"))
+            }
+            val hasGoods = GoodsTable.selectAll().where { GoodsTable.typeId eq req.id }.count()
+            if (hasGoods > 0) {
+                return@suspendTransaction call.respond(fail<String>(ResultCode.BUSINESS_ERROR, "分类下存在商品，无法删除"))
+            }
+            val deleted = Categories.deleteWhere { Categories.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "分类不存在"))
+            else call.respond(okMsg("删除分类"))
+        }
+    }
+
+    // ===== 轮播图管理 =====
+    get("banner/list") {
+        @Serializable data class BannerItem(
+            val id: Long, val pic: String, val url: String,
+            val title: String, val sortNum: Int, val status: Int
+        )
+        suspendTransaction {
+            val list = Banners.selectAll()
+                .orderBy(Banners.sortNum, SortOrder.ASC)
+                .map { row ->
+                    BannerItem(
+                        id = row[Banners.id],
+                        pic = row[Banners.pic],
+                        url = (row[Banners.url] ?: ""),
+                        title = (row[Banners.title] ?: ""),
+                        sortNum = row[Banners.sortNum],
+                        status = row[Banners.status]
+                    )
+                }
+            call.respond(ok(list))
+        }
+    }
+
+    post("banner/add") {
+        @Serializable data class Req(val pic: String, val url: String = "", val title: String = "", val sortNum: Int = 0, val status: Int = 1)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            Banners.insert {
+                it[Banners.pic] = req.pic
+                it[Banners.url] = req.url
+                it[Banners.title] = req.title
+                it[Banners.sortNum] = req.sortNum
+                it[Banners.status] = req.status
+            }
+            call.respond(okMsg("新增轮播图"))
+        }
+    }
+
+    put("banner/update") {
+        @Serializable data class Req(val id: Long, val pic: String? = null, val url: String? = null, val title: String? = null, val sortNum: Int? = null, val status: Int? = null)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = Banners.update({ Banners.id eq req.id }) {
+                req.pic?.let { v -> it[Banners.pic] = v }
+                req.url?.let { v -> it[Banners.url] = v }
+                req.title?.let { v -> it[Banners.title] = v }
+                req.sortNum?.let { v -> it[Banners.sortNum] = v }
+                req.status?.let { v -> it[Banners.status] = v }
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "轮播图不存在"))
+            else call.respond(okMsg("修改轮播图"))
+        }
+    }
+
+    delete("banner/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val deleted = Banners.deleteWhere { Banners.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "轮播图不存在"))
+            else call.respond(okMsg("删除轮播图"))
+        }
+    }
+
+    // ===== 搜索关键词管理 =====
+    get("keyword/list") {
+        @Serializable data class KeywordItem(
+            val id: Long, val keyword: String, val searchCount: Int,
+            val isHot: Boolean, val sortNum: Int
+        )
+        suspendTransaction {
+            val list = SearchKeywords.selectAll()
+                .orderBy(SearchKeywords.sortNum, SortOrder.ASC)
+                .map { row ->
+                    KeywordItem(
+                        id = row[SearchKeywords.id],
+                        keyword = row[SearchKeywords.keyword],
+                        searchCount = row[SearchKeywords.searchCount],
+                        isHot = row[SearchKeywords.isHot],
+                        sortNum = row[SearchKeywords.sortNum]
+                    )
+                }
+            call.respond(ok(list))
+        }
+    }
+
+    post("keyword/add") {
+        @Serializable data class Req(val keyword: String, val isHot: Boolean = false, val sortNum: Int = 0)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val exists = SearchKeywords.selectAll().where { SearchKeywords.keyword eq req.keyword }.firstOrNull()
+            if (exists != null) return@suspendTransaction call.respond(fail<String>(ResultCode.BUSINESS_ERROR, "关键词已存在"))
+
+            SearchKeywords.insert {
+                it[SearchKeywords.keyword] = req.keyword
+                it[SearchKeywords.isHot] = req.isHot
+                it[SearchKeywords.sortNum] = req.sortNum
+            }
+            call.respond(okMsg("新增关键词"))
+        }
+    }
+
+    delete("keyword/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val deleted = SearchKeywords.deleteWhere { SearchKeywords.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "关键词不存在"))
+            else call.respond(okMsg("删除关键词"))
         }
     }
 }

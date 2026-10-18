@@ -21,7 +21,7 @@ fun Route.configureFeedbackRoutes() {
     authenticate("auth-jwt") {
 
         post("feedback/page") {
-            @Serializable data class Req(val page: Int = 1, val size: Int = 10)
+            @Serializable data class Req(val page: Int = 1)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
             @Serializable data class FeedBackItem(
@@ -37,7 +37,7 @@ fun Route.configureFeedbackRoutes() {
 
                 val list = Feedbacks.selectAll().where { Feedbacks.userId eq userId }
                     .orderBy(Feedbacks.createTime, SortOrder.DESC)
-                    .limit(req.size.coerceAtLeast(1))
+                    .limit(10).offset(((req.page - 1) * 10).toLong())
                     .map { row ->
                         // images 字段是 JSON 字符串，简单解析
                         val rawImages = row[Feedbacks.images]
@@ -70,7 +70,7 @@ fun Route.configureFeedbackRoutes() {
                 val images: List<String> = emptyList()
             )
             val req = runCatching { call.receive<Req>() }.getOrNull()
-                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "参数错误"))
+                ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
             val userId = call.currentUserId()
             val now = System.currentTimeMillis().toString()
@@ -84,7 +84,7 @@ fun Route.configureFeedbackRoutes() {
                     it[Feedbacks.createTime] = now
                 }
 
-                call.respond(ok("反馈提交成功，感谢您的意见！"))
+                call.respond(okMsg("提交反馈"))
             }
         }
     }

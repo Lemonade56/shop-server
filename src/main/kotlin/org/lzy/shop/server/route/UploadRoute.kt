@@ -25,15 +25,18 @@ fun Route.configureUploadRoutes() {
     authenticate("auth-jwt") {
 
         post("base/comm/upload") {
+            @Serializable data class Credentials(
+                val tmpSecretId: String, val tmpSecretKey: String, val sessionToken: String
+            )
             @Serializable data class OssUpload(
                 val bucket: String = "demo-bucket-1250000000",
                 val region: String = "ap-guangzhou",
                 val dir: String = "shop/${System.currentTimeMillis() / 1000}",
                 val expire: Long = System.currentTimeMillis() / 1000 + 1800,
-                val credentials: Map<String, String> = mapOf(
-                    "tmpSecretId" to "DemoSecretIdxxxxxxxxxxxxx",
-                    "tmpSecretKey" to "DemoSecretKeyxxxxxxxxxxxxx",
-                    "sessionToken" to "DemoSessionTokenxxxxxxxxxxxxx"
+                val credentials: Credentials = Credentials(
+                    tmpSecretId = "DemoSecretIdxxxxxxxxxxxxx",
+                    tmpSecretKey = "DemoSecretKeyxxxxxxxxxxxxx",
+                    sessionToken = "DemoSessionTokenxxxxxxxxxxxxx"
                 )
             )
 
