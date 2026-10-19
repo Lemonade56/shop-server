@@ -102,14 +102,14 @@ async function loadDashboard() {
         const r = await api('GET', 'dashboard/stats');
         if (r.code !== 200) return;
         const s = r.data;
-        document.getElementById('statGoods').textContent = s.goodsCount;
+        document.getElementById('statGoods').textContent = s.foodsCount;
         document.getElementById('statOrders').textContent = s.orderCount;
         document.getElementById('statSales').textContent = '¥' + ((s.totalSales || 0) / 100).toLocaleString();
         document.getElementById('statUsers').textContent = s.userCount;
         document.getElementById('dashboardDate').textContent = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
         renderSalesChart(s.sales7Days || []);
         renderOrderStatusChart(s.orderStatusDist || []);
-        renderTopGoods(s.topGoods || []);
+        renderTopGoods(s.topFoods || []);
         renderRecentOrders(s.recentOrders || []);
     } catch (e) { console.error(e); }
 }
