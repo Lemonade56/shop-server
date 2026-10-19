@@ -49,7 +49,9 @@ object DatabaseConfig {
                 Collections,
                 Notifications,
                 Feedbacks,
-                SearchKeywords
+                SearchKeywords,
+                Recipes,
+                RecipeIngredients
             )
             // 首次启动灌入食品饮料类种子数据；若旧数据不是食品类则先清掉再灌
             seedIfEmpty()
@@ -396,6 +398,94 @@ object DatabaseConfig {
         // 以后要恢复测试订单，把下面注释解开即可
         // val orderStatuses = listOf(1, 1, 1, 1, 2, 2, 3, 3, 4, 0)
         // ... (30 条订单种子代码)
+
+        // ===== 菜谱种子数据 =====
+        data class R(
+            val name: String, val pic: String, val desc: String,
+            val cat: String, val diff: Int, val time: Int, val sort: Int
+        )
+        val recipes = listOf(
+            R("番茄炒蛋", "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400",
+                "经典家常菜，酸甜开胃。番茄切块，鸡蛋打散，热锅烧油先炒蛋盛出，再炒番茄出汁后倒入鸡蛋翻炒均匀即可。",
+                "家常菜", 1, 15, 1),
+            R("红烧牛肉面", "https://images.unsplash.com/photo-1552611052-33e04de081de?w=400",
+                "快手美味方便面升级。锅中加水烧开，下面饼煮3分钟，加入调料包，可选加牛肉片和青菜点缀。",
+                "快手菜", 1, 10, 2),
+            R("黄油煎苹果", "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400",
+                "甜品小能手。苹果去核切厚片，小火融化黄油，两面煎至金黄微焦，撒少许肉桂粉即可。",
+                "甜品", 1, 10, 3),
+            R("自热火锅豪华版", "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400",
+                "懒人必备。打开自热火锅，加入午餐肉片和喜欢的蔬菜，注水加热15分钟即可享受火锅大餐。",
+                "快手菜", 1, 20, 4),
+            R("牛奶咖啡拿铁", "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400",
+                "在家也能做的咖啡店品质。牛奶加热至微温，倒入即饮咖啡中，搅拌均匀即可享用香浓拿铁。",
+                "饮品", 1, 5, 5),
+            R("苹果牛奶甜品", "https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=400",
+                "营养早餐首选。苹果去核切小块，倒入牛奶中，可加少许蜂蜜调味，简单又美味。",
+                "甜品", 1, 5, 6),
+            R("大米香粥", "https://images.unsplash.com/photo-1607301405390-d831c42bf9bb?w=400",
+                "养胃好选择。大米淘洗干净，加水大火烧开转小火慢炖30分钟，熬至浓稠即可。",
+                "主食", 1, 40, 7),
+            R("黄油巧克力拼盘", "https://images.unsplash.com/photo-1549007992-cb6364a2ab46?w=400",
+                "下午茶小甜点。巧克力隔水融化，刷入硅胶模具，放凉脱模，搭配烤香的黄油饼干食用。",
+                "甜品", 2, 30, 8),
+        )
+
+        val now = System.currentTimeMillis().toString()
+        recipes.forEach { r ->
+            val rid = Recipes.insert {
+                it[Recipes.name] = r.name
+                it[Recipes.pic] = r.pic
+                it[Recipes.description] = r.desc
+                it[Recipes.category] = r.cat
+                it[Recipes.difficulty] = r.diff
+                it[Recipes.time] = r.time
+                it[Recipes.status] = 1
+                it[Recipes.sortNum] = r.sort
+                it[Recipes.createTime] = now
+            } get Recipes.id
+
+            // 每个菜谱配 2-4 个食材（goodsId 暂不关联，由后台管理员后续绑定）
+            val ingredients = when (r.name) {
+                "番茄炒蛋" -> listOf(
+                    "有机西红柿→2个", "鸡蛋→3个", "食用盐→少许", "食用油→适量"
+                )
+                "红烧牛肉面" -> listOf(
+                    "方便面→1袋", "红烧酱油→少许", "清水→500ml"
+                )
+                "黄油煎苹果" -> listOf(
+                    "红富士苹果→2个", "黄油→30g", "肉桂粉→少许"
+                )
+                "自热火锅豪华版" -> listOf(
+                    "自热火锅→1盒", "午餐肉→1罐", "清水→适量"
+                )
+                "牛奶咖啡拿铁" -> listOf(
+                    "纯牛奶→1盒", "即饮咖啡→1瓶"
+                )
+                "苹果牛奶甜品" -> listOf(
+                    "红富士苹果→1个", "纯牛奶→1盒", "蜂蜜→少许"
+                )
+                "大米香粥" -> listOf(
+                    "五常大米→1杯", "清水→8杯", "食用盐→少许"
+                )
+                "黄油巧克力拼盘" -> listOf(
+                    "巧克力→50g", "黄油→20g", "饼干→若干"
+                )
+                else -> emptyList()
+            }
+
+            ingredients.forEachIndexed { idx, item ->
+                val (name, qty) = item.split("→").let {
+                    if (it.size == 2) it[0] to it[1] else it[0] to "适量"
+                }
+                RecipeIngredients.insert {
+                    it[RecipeIngredients.recipeId] = rid
+                    it[RecipeIngredients.ingredientName] = name
+                    it[RecipeIngredients.quantity] = qty
+                    it[RecipeIngredients.sortNum] = idx
+                }
+            }
+        }
     }
 }
 
@@ -588,6 +678,32 @@ object SearchKeywords : Table("t_search_keyword") {
     val keyword = varchar("keyword", 64).uniqueIndex()
     val searchCount = integer("search_count").default(0)
     val isHot = bool("is_hot").default(false)
+    val sortNum = integer("sort_num").default(0)
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** 菜谱 —— 菜谱Tab核心表 */
+object Recipes : Table("t_recipe") {
+    val id = long("id").autoIncrement()
+    val name = varchar("name", 64)                 // 菜名：如"番茄炒蛋"
+    val pic = varchar("pic", 512)                  // 菜谱封面图
+    val description = text("description").nullable() // 做法描述
+    val category = varchar("category", 32)         // 分类：家常菜/快手菜/烘焙/汤品
+    val difficulty = integer("difficulty").default(1) // 难度 1简单 2中等 3困难
+    val time = integer("time").default(15)          // 耗时（分钟）
+    val status = integer("status").default(1)       // 0-下架 1-上架
+    val sortNum = integer("sort_num").default(0)
+    val createTime = varchar("create_time", 32).default("")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** 菜谱食材关联 —— 一道菜需要哪些商品 */
+object RecipeIngredients : Table("t_recipe_ingredient") {
+    val id = long("id").autoIncrement()
+    val recipeId = long("recipe_id").index()
+    val goodsId = long("goods_id").nullable()          // 关联 Goods 表（可空，种子数据先不关联）
+    val ingredientName = varchar("ingredient_name", 64) // 食材名：如"番茄"
+    val quantity = varchar("quantity", 32)           // 用量：如"2个"
     val sortNum = integer("sort_num").default(0)
     override val primaryKey = PrimaryKey(id)
 }

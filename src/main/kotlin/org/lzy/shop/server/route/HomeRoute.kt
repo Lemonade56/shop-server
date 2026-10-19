@@ -13,6 +13,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Banners
 import org.lzy.shop.server.config.Categories
+import org.lzy.shop.server.config.Coupons
 import org.lzy.shop.server.config.Goods
 
 /**
@@ -107,6 +108,11 @@ fun Route.configureHomeRoutes() {
                     )
                 }
 
+            // 优惠券入口：取启用中的前5张
+            val couponNames = Coupons.selectAll().where { Coupons.status eq 1 }
+                .limit(5)
+                .map { it[Coupons.name] }
+
             call.respond(
                 ok(
                     HomeData(
@@ -115,7 +121,7 @@ fun Route.configureHomeRoutes() {
                         categoryAll = categoryAllList,
                         flashSale = flashSale,
                         recommend = recommend,
-                        coupon = emptyList(),
+                        coupon = couponNames,
                         foods = recommend
                     )
                 )

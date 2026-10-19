@@ -193,6 +193,7 @@ fun Route.configureAllAppRoutes() {
     configureCustomerServiceRoutes()
     configureUploadRoutes()
     configureCartRoutes()
+    configureRecipesRoutes()
 }
 
 fun main() {

@@ -204,12 +204,12 @@ fun Route.configureFoodsRoutes() {
                 }
 
             val fallback = listOf(
-                KeywordItem(101, "iPhone 16"),
-                KeywordItem(102, "小米15"),
-                KeywordItem(103, "羽绒服"),
-                KeywordItem(104, "戴森"),
-                KeywordItem(105, "AirPods"),
-                KeywordItem(106, "Switch")
+                KeywordItem(101, "休闲零食"),
+                KeywordItem(102, "进口饼干"),
+                KeywordItem(103, "低脂牛奶"),
+                KeywordItem(104, "现磨咖啡"),
+                KeywordItem(105, "新鲜水果"),
+                KeywordItem(106, "有机蔬菜")
             )
 
             call.respond(ok(if (fromDb.isEmpty()) fallback else fromDb))

@@ -21,6 +21,7 @@ import org.lzy.shop.server.config.Coupons
 import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.OrderItems
 import org.lzy.shop.server.config.Orders
+import org.lzy.shop.server.config.UserCoupons
 
 private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 
@@ -312,17 +313,19 @@ fun Route.configureOrderRoutes() {
                         )
                     }
 
-                val coupons = Coupons.selectAll().where {
-                    (Coupons.status eq 1) and (Coupons.remainCount greater 0)
-                }.map { c ->
-                    CouponItem(
-                        id = c[Coupons.id],
-                        name = c[Coupons.name],
-                        discount = c[Coupons.discount],
-                        minAmount = c[Coupons.minAmount],
-                        endTime = c[Coupons.endTime]
-                    )
-                }
+                // 联查：当前用户已领取且未使用的优惠券
+                val coupons = UserCoupons.innerJoin(Coupons)
+                    .selectAll().where {
+                        (UserCoupons.userId eq userId) and (UserCoupons.status eq 0)
+                    }.map { row ->
+                        CouponItem(
+                            id = row[Coupons.id],
+                            name = row[Coupons.name],
+                            discount = row[Coupons.discount],
+                            minAmount = row[Coupons.minAmount],
+                            endTime = row[Coupons.endTime]
+                        )
+                    }
 
                 call.respond(ok(ConfirmOrderData(addresses, coupons)))
             }

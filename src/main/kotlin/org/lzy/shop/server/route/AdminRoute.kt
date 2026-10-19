@@ -25,6 +25,8 @@ import org.lzy.shop.server.config.SearchKeywords
 import org.lzy.shop.server.config.Users
 import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.GoodsSpecs
+import org.lzy.shop.server.config.Recipes
+import org.lzy.shop.server.config.RecipeIngredients
 import java.io.File
 import java.util.Base64
 import java.util.UUID
@@ -914,5 +916,217 @@ fun Route.configureAdminRoutes() {
 
         @Serializable data class UploadResult(val url: String)
         call.respond(ok(UploadResult(url = "/uploads/$safeName")))
+    }
+
+    // ===== 菜谱管理 =====
+    get("recipe/list") {
+        val keyword = call.request.queryParameters["keyword"] ?: ""
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+
+        @Serializable data class RecipeItem(
+            val id: Long, val name: String, val pic: String,
+            val category: String, val difficulty: Int, val time: Int,
+            val status: Int, val sortNum: Int
+        )
+
+        suspendTransaction {
+            val total = if (keyword.isNotBlank()) {
+                Recipes.selectAll().where { Recipes.name like "%$keyword%" }.count()
+            } else {
+                Recipes.selectAll().count()
+            }
+
+            val list = if (keyword.isNotBlank()) {
+                Recipes.selectAll().where { Recipes.name like "%$keyword%" }
+            } else {
+                Recipes.selectAll()
+            }.orderBy(Recipes.sortNum, SortOrder.ASC)
+                .limit(10).offset(((page - 1) * 10).toLong())
+                .map { row ->
+                    RecipeItem(
+                        id = row[Recipes.id],
+                        name = row[Recipes.name],
+                        pic = row[Recipes.pic],
+                        category = row[Recipes.category],
+                        difficulty = row[Recipes.difficulty],
+                        time = row[Recipes.time],
+                        status = row[Recipes.status],
+                        sortNum = row[Recipes.sortNum]
+                    )
+                }
+
+            call.respond(ok(PageResult(total, list)))
+        }
+    }
+
+    get("recipe/detail") {
+        val id = call.request.queryParameters["id"]?.toLongOrNull()
+            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "id 参数无效"))
+
+        @Serializable data class IngredientItem(
+            val id: Long, val ingredientName: String,
+            val quantity: String, val goodsId: Long?
+        )
+        @Serializable data class RecipeDetail(
+            val id: Long, val name: String, val pic: String,
+            val description: String? = null, val category: String,
+            val difficulty: Int, val time: Int,
+            val status: Int, val sortNum: Int,
+            val ingredients: List<IngredientItem>
+        )
+
+        suspendTransaction {
+            val row = Recipes.selectAll().where { Recipes.id eq id }.firstOrNull()
+                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "菜谱不存在"))
+
+            val ingredients = RecipeIngredients.selectAll().where { RecipeIngredients.recipeId eq id }
+                .orderBy(RecipeIngredients.sortNum, SortOrder.ASC)
+                .map { ing ->
+                    IngredientItem(
+                        id = ing[RecipeIngredients.id],
+                        ingredientName = ing[RecipeIngredients.ingredientName],
+                        quantity = ing[RecipeIngredients.quantity],
+                        goodsId = ing[RecipeIngredients.goodsId]
+                    )
+                }
+
+            call.respond(
+                ok(
+                    RecipeDetail(
+                        id = row[Recipes.id],
+                        name = row[Recipes.name],
+                        pic = row[Recipes.pic],
+                        description = row[Recipes.description],
+                        category = row[Recipes.category],
+                        difficulty = row[Recipes.difficulty],
+                        time = row[Recipes.time],
+                        status = row[Recipes.status],
+                        sortNum = row[Recipes.sortNum],
+                        ingredients = ingredients
+                    )
+                )
+            )
+        }
+    }
+
+    post("recipe/add") {
+        @Serializable data class Req(
+            val name: String, val pic: String, val description: String? = null,
+            val category: String, val difficulty: Int = 1, val time: Int = 15,
+            val status: Int = 1, val sortNum: Int = 0
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            Recipes.insert {
+                it[Recipes.name] = req.name
+                it[Recipes.pic] = req.pic
+                it[Recipes.description] = req.description
+                it[Recipes.category] = req.category
+                it[Recipes.difficulty] = req.difficulty
+                it[Recipes.time] = req.time
+                it[Recipes.status] = req.status
+                it[Recipes.sortNum] = req.sortNum
+                it[Recipes.createTime] = System.currentTimeMillis().toString()
+            }
+            call.respond(okMsg("新增菜谱"))
+        }
+    }
+
+    put("recipe/update") {
+        @Serializable data class Req(
+            val id: Long, val name: String? = null, val pic: String? = null,
+            val description: String? = null, val category: String? = null,
+            val difficulty: Int? = null, val time: Int? = null,
+            val status: Int? = null, val sortNum: Int? = null
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = Recipes.update({ Recipes.id eq req.id }) {
+                req.name?.let { v -> it[Recipes.name] = v }
+                req.pic?.let { v -> it[Recipes.pic] = v }
+                req.description?.let { v -> it[Recipes.description] = v }
+                req.category?.let { v -> it[Recipes.category] = v }
+                req.difficulty?.let { v -> it[Recipes.difficulty] = v }
+                req.time?.let { v -> it[Recipes.time] = v }
+                req.status?.let { v -> it[Recipes.status] = v }
+                req.sortNum?.let { v -> it[Recipes.sortNum] = v }
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "菜谱不存在"))
+            else call.respond(okMsg("更新菜谱"))
+        }
+    }
+
+    delete("recipe/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            RecipeIngredients.deleteWhere { RecipeIngredients.recipeId eq req.id }
+            val deleted = Recipes.deleteWhere { Recipes.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "菜谱不存在"))
+            else call.respond(okMsg("删除菜谱"))
+        }
+    }
+
+    // 菜谱食材管理
+    post("recipe/ingredient/add") {
+        @Serializable data class Req(
+            val recipeId: Long, val ingredientName: String,
+            val quantity: String, val goodsId: Long? = null
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            // 查当前最大 sortNum
+            val maxSort = RecipeIngredients.selectAll().where { RecipeIngredients.recipeId eq req.recipeId }
+                .orderBy(RecipeIngredients.sortNum, SortOrder.DESC).limit(1)
+                .firstOrNull()?.get(RecipeIngredients.sortNum) ?: 0
+
+            RecipeIngredients.insert {
+                it[RecipeIngredients.recipeId] = req.recipeId
+                it[RecipeIngredients.ingredientName] = req.ingredientName
+                it[RecipeIngredients.quantity] = req.quantity
+                it[RecipeIngredients.goodsId] = req.goodsId
+                it[RecipeIngredients.sortNum] = maxSort + 1
+            }
+            call.respond(okMsg("新增食材"))
+        }
+    }
+
+    put("recipe/ingredient/update") {
+        @Serializable data class Req(
+            val id: Long, val ingredientName: String? = null,
+            val quantity: String? = null, val goodsId: Long? = null
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = RecipeIngredients.update({ RecipeIngredients.id eq req.id }) {
+                req.ingredientName?.let { v -> it[RecipeIngredients.ingredientName] = v }
+                req.quantity?.let { v -> it[RecipeIngredients.quantity] = v }
+                goodsId = req.goodsId  // null 表示清除关联
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "食材不存在"))
+            else call.respond(okMsg("更新食材"))
+        }
+    }
+
+    delete("recipe/ingredient/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val deleted = RecipeIngredients.deleteWhere { RecipeIngredients.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "食材不存在"))
+            else call.respond(okMsg("删除食材"))
+        }
     }
 }

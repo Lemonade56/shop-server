@@ -81,6 +81,10 @@
 
             <div class="nav-group">
                 <div class="nav-group-title">运营</div>
+                <a class="nav-item" data-page="recipes" onclick="showPage('recipes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" x2="18" y1="17" y2="17"/></svg>
+                    <span>菜谱管理</span>
+                </a>
                 <a class="nav-item" data-page="banners" onclick="showPage('banners')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                     <span>轮播图</span>
@@ -328,6 +332,28 @@
                 </table>
             </section>
 
+            <!-- 菜谱管理 -->
+            <section id="page-recipes" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">菜谱管理</h2>
+                    <button class="btn btn-primary" onclick="openRecipeModal()">+ 新增菜谱</button>
+                </div>
+                <div class="toolbar">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" id="recipeKeyword" placeholder="搜索菜谱名称...">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadRecipes(1)">搜索</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>封面</th><th>菜名</th><th>分类</th><th>难度</th><th>耗时</th><th>状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="recipesTableBody"></tbody>
+                </table>
+                <div class="pagination" id="recipesPagination"></div>
+            </section>
+
         </main>
     </div>
 </div>
@@ -469,6 +495,67 @@
         <div class="modal-actions">
             <button class="btn" onclick="closeModal('orderDetailModal')">关闭</button>
             <button class="btn btn-primary" id="orderShipBtn" style="display:none;" onclick="shipOrderFromDetail()">发货</button>
+        </div>
+    </div>
+</div>
+
+<!-- 菜谱新增/编辑弹窗 -->
+<div id="recipeModal" class="modal" style="display:none;">
+    <div class="modal-box" style="width:560px;">
+        <h3 id="recipeModalTitle">新增菜谱</h3>
+        <input type="hidden" id="recipe_id">
+        <div class="form-row">
+            <div class="form-group"><label>菜名</label><input type="text" id="recipe_name"></div>
+            <div class="form-group"><label>分类</label>
+                <select id="recipe_category">
+                    <option value="家常菜">家常菜</option>
+                    <option value="快手菜">快手菜</option>
+                    <option value="甜品">甜品</option>
+                    <option value="饮品">饮品</option>
+                    <option value="主食">主食</option>
+                    <option value="烘焙">烘焙</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>难度</label>
+                <select id="recipe_difficulty">
+                    <option value="1">简单</option>
+                    <option value="2">中等</option>
+                    <option value="3">困难</option>
+                </select>
+            </div>
+            <div class="form-group"><label>耗时(分钟)</label><input type="number" id="recipe_time" value="15"></div>
+        </div>
+        <div class="form-group">
+            <label>封面图</label>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <input type="text" id="recipe_pic" placeholder="图片URL（上传后自动填入）" style="flex:1;">
+                <button type="button" class="btn btn-sm" onclick="document.getElementById('recipePicFile').click()">📁 本地选择</button>
+                <input type="file" id="recipePicFile" accept="image/*" style="display:none;" onchange="uploadRecipePic(this)">
+            </div>
+            <div id="recipePicPreview" style="margin-top:8px;"></div>
+        </div>
+        <div class="form-group"><label>做法描述</label><textarea id="recipe_description" rows="3" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;"></textarea></div>
+        <div class="form-row">
+            <div class="form-group"><label>状态</label>
+                <select id="recipe_status"><option value="1">上架</option><option value="0">下架</option></select>
+            </div>
+            <div class="form-group"><label>排序</label><input type="number" id="recipe_sortNum" value="0"></div>
+        </div>
+
+        <!-- 食材管理（编辑模式显示）-->
+        <div id="recipeIngredientSection" style="display:none;margin-top:14px;border-top:1px solid #e2e8f0;padding-top:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <b style="font-size:14px;">🥬 食材清单</b>
+                <button type="button" class="btn btn-sm" onclick="addIngredientRow()">+ 新增食材</button>
+            </div>
+            <div id="recipeIngredientList"></div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('recipeModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveRecipe()">保存</button>
         </div>
     </div>
 </div>

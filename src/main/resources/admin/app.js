@@ -6,6 +6,7 @@ let editingUserId = null;
 let editingCouponId = null;
 let editingKeywordId = null;
 let editingGoodsId = null;
+let editingRecipeId = null;
 let currentOrderDetailId = null;
 let orderStatusLabels = { 0: '待支付', 1: '已支付', 2: '已发货', 3: '已签收', 4: '已取消' };
 let statusLabelMap = { 0: ['badge-yellow','待支付'], 1: ['badge-blue','已支付'], 2: ['badge-blue','已发货'], 3: ['badge-green','已签收'], 4: ['badge-gray','已取消'] };
@@ -78,7 +79,7 @@ function showPage(page) {
     const names = {
         dashboard: '数据概览', goods: '食物管理', categories: '分类管理',
         orders: '订单管理', coupons: '优惠券管理', users: '用户管理',
-        banners: '轮播图管理', keywords: '搜索关键词'
+        recipes: '菜谱管理', banners: '轮播图管理', keywords: '搜索关键词'
     };
     document.getElementById('breadcrumb').textContent = names[page] || page;
     const loaders = {
@@ -88,6 +89,7 @@ function showPage(page) {
         orders: () => loadOrders(1),
         coupons: loadCoupons,
         users: () => loadUsers(1),
+        recipes: () => loadRecipes(1),
         banners: loadBanners,
         keywords: loadKeywords
     };
@@ -844,6 +846,190 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ===== 菜谱管理 =====
+async function loadRecipes(page = 1) {
+    const keyword = document.getElementById('recipeKeyword')?.value || '';
+    const r = await api('GET', 'recipe/list', { keyword, page });
+    if (r.code !== 200) return;
+    const tbody = document.getElementById('recipesTableBody');
+    const diffLabels = { 1: '简单', 2: '中等', 3: '困难' };
+    tbody.innerHTML = r.data.list.map(item => `
+        <tr>
+            <td>${item.id}</td>
+            <td><img src="${item.pic}" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2240%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/></svg>'"></td>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${diffLabels[item.difficulty] || item.difficulty}</td>
+            <td>${item.time}分钟</td>
+            <td>${item.status === 1 ? '<span class="badge badge-green">上架</span>' : '<span class="badge badge-gray">下架</span>'}</td>
+            <td>
+                <button class="btn btn-sm" onclick="openRecipeModal(${item.id})">编辑</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteRecipe(${item.id})">删除</button>
+            </td>
+        </tr>
+    `).join('');
+    renderPagination('recipesPagination', page, Math.ceil(r.data.total / 10) || 1, loadRecipes);
+}
+
+function openRecipeModal(id = null) {
+    editingRecipeId = id;
+    document.getElementById('recipeModalTitle').textContent = id ? '编辑菜谱' : '新增菜谱';
+    document.getElementById('recipe_id').value = id || '';
+    document.getElementById('recipe_name').value = '';
+    document.getElementById('recipe_category').value = '家常菜';
+    document.getElementById('recipe_difficulty').value = '1';
+    document.getElementById('recipe_time').value = 15;
+    document.getElementById('recipe_pic').value = '';
+    document.getElementById('recipe_description').value = '';
+    document.getElementById('recipe_status').value = '1';
+    document.getElementById('recipe_sortNum').value = 0;
+    document.getElementById('recipePicPreview').innerHTML = '';
+
+    if (id) {
+        // 编辑模式：加载详情
+        document.getElementById('recipeIngredientSection').style.display = 'block';
+        api('GET', 'recipe/detail', { id }).then(r => {
+            if (r.code !== 200) return;
+            const d = r.data;
+            document.getElementById('recipe_name').value = d.name;
+            document.getElementById('recipe_category').value = d.category;
+            document.getElementById('recipe_difficulty').value = d.difficulty;
+            document.getElementById('recipe_time').value = d.time;
+            document.getElementById('recipe_pic').value = d.pic;
+            document.getElementById('recipe_description').value = d.description || '';
+            document.getElementById('recipe_status').value = d.status;
+            document.getElementById('recipe_sortNum').value = d.sortNum;
+            if (d.pic) {
+                document.getElementById('recipePicPreview').innerHTML = `<img src="${d.pic}" style="max-width:120px;max-height:80px;border-radius:4px;">`;
+            }
+            renderIngredients(d.ingredients || []);
+        });
+    } else {
+        document.getElementById('recipeIngredientSection').style.display = 'none';
+    }
+    document.getElementById('recipeModal').style.display = 'flex';
+}
+
+function renderIngredients(list) {
+    document.getElementById('recipeIngredientList').innerHTML = list.map(ing => `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+            <input type="hidden" class="ing-id" value="${ing.id}">
+            <input type="text" class="ing-name" value="${ing.ingredientName}" placeholder="食材名" style="flex:2;padding:6px;border:1px solid #e2e8f0;border-radius:4px;">
+            <input type="text" class="ing-qty" value="${ing.quantity}" placeholder="用量" style="flex:1;padding:6px;border:1px solid #e2e8f0;border-radius:4px;">
+            <button type="button" class="btn btn-sm btn-danger" onclick="deleteIngredient(${ing.id})">删</button>
+        </div>
+    `).join('');
+}
+
+function addIngredientRow() {
+    const list = document.getElementById('recipeIngredientList');
+    const count = list.children.length;
+    list.insertAdjacentHTML('beforeend', `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+            <input type="hidden" class="ing-id" value="">
+            <input type="text" class="ing-name" placeholder="食材名，如：番茄" style="flex:2;padding:6px;border:1px solid #e2e8f0;border-radius:4px;">
+            <input type="text" class="ing-qty" placeholder="用量，如：2个" style="flex:1;padding:6px;border:1px solid #e2e8f0;border-radius:4px;">
+            <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">删</button>
+        </div>
+    `);
+}
+
+async function deleteIngredient(id) {
+    if (!confirm('确认删除这条食材？')) return;
+    const r = await api('DELETE', 'recipe/ingredient/delete', { id });
+    toast(r.message);
+    // 重新加载菜谱详情刷新食材列表
+    if (editingRecipeId) openRecipeModal(editingRecipeId);
+}
+
+async function saveRecipe() {
+    const id = editingRecipeId;
+    const payload = {
+        name: document.getElementById('recipe_name').value.trim(),
+        category: document.getElementById('recipe_category').value,
+        difficulty: parseInt(document.getElementById('recipe_difficulty').value),
+        time: parseInt(document.getElementById('recipe_time').value),
+        pic: document.getElementById('recipe_pic').value.trim(),
+        description: document.getElementById('recipe_description').value.trim(),
+        status: parseInt(document.getElementById('recipe_status').value),
+        sortNum: parseInt(document.getElementById('recipe_sortNum').value)
+    };
+    if (!payload.name) return toast('菜名不能为空');
+
+    let r;
+    if (id) {
+        payload.id = id;
+        r = await api('PUT', 'recipe/update', payload);
+    } else {
+        r = await api('POST', 'recipe/add', payload);
+    }
+    toast(r.message);
+    if (r.code === 200) {
+        // 新增成功后自动打开编辑模式让用户添加食材
+        if (!id) {
+            closeModal('recipeModal');
+            // 查刚创建的菜谱
+            const listRes = await api('GET', 'recipe/list', { keyword: payload.name, page: 1 });
+            if (listRes.code === 200 && listRes.data.list.length > 0) {
+                openRecipeModal(listRes.data.list[0].id);
+            }
+        } else {
+            // 更新食材列表
+            const rows = document.querySelectorAll('#recipeIngredientList > div');
+            for (const row of rows) {
+                const ingId = row.querySelector('.ing-id').value;
+                const ingName = row.querySelector('.ing-name').value.trim();
+                const ingQty = row.querySelector('.ing-qty').value.trim();
+                if (ingId) {
+                    // 更新已有食材
+                    await api('PUT', 'recipe/ingredient/update', {
+                        id: parseInt(ingId), ingredientName: ingName, quantity: ingQty
+                    });
+                } else if (ingName) {
+                    // 新增食材
+                    await api('POST', 'recipe/ingredient/add', {
+                        recipeId: id, ingredientName: ingName, quantity: ingQty
+                    });
+                }
+            }
+            closeModal('recipeModal');
+            loadRecipes(1);
+        }
+    }
+}
+
+async function deleteRecipe(id) {
+    if (!confirm('确认删除该菜谱？关联食材也会一并删除')) return;
+    const r = await api('DELETE', 'recipe/delete', { id });
+    toast(r.message);
+    if (r.code === 200) loadRecipes(1);
+}
+
+async function uploadRecipePic(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+        const dataUrl = reader.result;
+        document.getElementById('recipePicPreview').innerHTML = `<span style="color:#888;">上传中...</span>`;
+        try {
+            const r = await api('POST', 'upload/image', { dataUrl });
+            if (r.code === 200) {
+                document.getElementById('recipe_pic').value = r.data.url;
+                document.getElementById('recipePicPreview').innerHTML = `<img src="${r.data.url}" style="max-width:120px;max-height:80px;border-radius:4px;">`;
+                toast('图片上传成功');
+            } else {
+                toast(r.message || '上传失败');
+                document.getElementById('recipePicPreview').innerHTML = '';
+            }
+        } catch (e) {
+            toast('网络错误');
+            document.getElementById('recipePicPreview').innerHTML = '';
+        }
+    };
+    reader.readAsDataURL(file);
+}
 
 // ===== 启动 =====
 if (token) {
