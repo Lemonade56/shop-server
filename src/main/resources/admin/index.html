@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopServer 管理后台</title>
+    <title>吃货商城 · 管理后台</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -12,9 +12,9 @@
 <!-- 登录页 -->
 <div id="loginPage" class="login-page">
     <div class="login-box">
-        <div class="login-logo">🛒</div>
-        <h1>ShopServer 管理后台</h1>
-        <p class="subtitle">小米生态电商管理系统</p>
+        <div class="login-logo">🍪</div>
+        <h1>吃货商城 · 管理后台</h1>
+        <p class="subtitle">食品饮料电商管理系统</p>
         <div class="form-group">
             <label>用户名</label>
             <input type="text" id="loginUsername" placeholder="请输入管理员账号" value="admin">
@@ -34,24 +34,24 @@
     <!-- 侧边栏 -->
     <aside class="sidebar" id="sidebar">
         <div class="logo">
-            <span class="logo-icon">🛒</span>
-            <span class="logo-text">ShopServer</span>
+            <span class="logo-icon">🍪</span>
+            <span class="logo-text">吃货商城</span>
         </div>
 
         <nav class="nav">
             <div class="nav-group">
-                <div class="nav-group-title">概览</div>
+                <div class="nav-group-title">数据</div>
                 <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                    <span>仪表盘</span>
+                    <span>数据概览</span>
                 </a>
             </div>
 
             <div class="nav-group">
-                <div class="nav-group-title">商品管理</div>
+                <div class="nav-group-title">食物</div>
                 <a class="nav-item" data-page="goods" onclick="showPage('goods')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-                    <span>商品列表</span>
+                    <span>食物列表</span>
                 </a>
                 <a class="nav-item" data-page="categories" onclick="showPage('categories')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg>
@@ -60,19 +60,19 @@
             </div>
 
             <div class="nav-group">
-                <div class="nav-group-title">订单中心</div>
+                <div class="nav-group-title">交易</div>
                 <a class="nav-item" data-page="orders" onclick="showPage('orders')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                     <span>订单管理</span>
                 </a>
                 <a class="nav-item" data-page="coupons" onclick="showPage('coupons')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-                    <span>优惠券管理</span>
+                    <span>优惠券</span>
                 </a>
             </div>
 
             <div class="nav-group">
-                <div class="nav-group-title">客户中心</div>
+                <div class="nav-group-title">会员</div>
                 <a class="nav-item" data-page="users" onclick="showPage('users')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     <span>用户管理</span>
@@ -80,10 +80,10 @@
             </div>
 
             <div class="nav-group">
-                <div class="nav-group-title">营销推广</div>
+                <div class="nav-group-title">运营</div>
                 <a class="nav-item" data-page="banners" onclick="showPage('banners')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                    <span>轮播图管理</span>
+                    <span>轮播图</span>
                 </a>
                 <a class="nav-item" data-page="keywords" onclick="showPage('keywords')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -115,12 +115,12 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
             </button>
 
-            <div class="breadcrumb" id="breadcrumb">仪表盘</div>
+            <div class="breadcrumb" id="breadcrumb">数据概览</div>
 
             <div class="topbar-right">
                 <div class="global-search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input type="text" placeholder="搜索商品、订单、用户..." id="globalSearch">
+                    <input type="text" placeholder="搜索食物、订单、用户..." id="globalSearch">
                 </div>
                 <button class="topbar-btn" title="通知">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
@@ -141,13 +141,13 @@
 
                 <!-- 统计卡片 -->
                 <div class="stats-grid">
-                    <div class="stat-card stat-card-blue">
+                    <div class="stat-card stat-card-orange">
                         <div class="stat-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                         </div>
                         <div class="stat-info">
                             <div class="stat-value" id="statGoods">0</div>
-                            <div class="stat-label">商品总数</div>
+                            <div class="stat-label">食物总数</div>
                         </div>
                     </div>
                     <div class="stat-card stat-card-green">
@@ -159,7 +159,7 @@
                             <div class="stat-label">订单总数</div>
                         </div>
                     </div>
-                    <div class="stat-card stat-card-orange">
+                    <div class="stat-card stat-card-red">
                         <div class="stat-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         </div>
@@ -200,7 +200,7 @@
                 <div class="bottom-grid">
                     <div class="panel-card">
                         <div class="panel-header">
-                            <h3>热销商品 TOP 5</h3>
+                            <h3>热销食物 TOP 5</h3>
                         </div>
                         <div class="top-goods-list" id="topGoodsList"></div>
                     </div>
@@ -216,75 +216,26 @@
             <!-- 商品管理 -->
             <section id="page-goods" class="page" style="display:none;">
                 <div class="page-header-row">
-                    <h2 class="page-title">商品管理</h2>
+                    <h2 class="page-title">食物管理</h2>
                     <button class="btn btn-primary" onclick="openGoodsModal()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                        新增商品
+                        新增食物
                     </button>
                 </div>
                 <div class="toolbar">
                     <div class="search-box">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                        <input type="text" id="goodsKeyword" placeholder="搜索商品名称...">
+                        <input type="text" id="goodsKeyword" placeholder="搜索食物名称...">
                     </div>
-                    <button class="btn btn-primary" onclick="loadGoods()">搜索</button>
+                    <button class="btn btn-primary" onclick="loadGoods(1)">搜索</button>
                 </div>
                 <table class="data-table">
                     <thead>
-                        <tr><th>ID</th><th>商品图</th><th>标题</th><th>价格</th><th>销量</th><th>状态</th><th>操作</th></tr>
+                        <tr><th>ID</th><th>食物图</th><th>名称</th><th>价格</th><th>销量</th><th>状态</th><th>操作</th></tr>
                     </thead>
                     <tbody id="goodsTableBody"></tbody>
                 </table>
                 <div class="pagination" id="goodsPagination"></div>
-            </section>
-
-            <!-- 订单管理 -->
-            <section id="page-orders" class="page" style="display:none;">
-                <div class="page-header-row">
-                    <h2 class="page-title">订单管理</h2>
-                </div>
-                <div class="status-tabs">
-                    <button class="status-tab active" data-status="all" onclick="filterOrders('all')">全部</button>
-                    <button class="status-tab" data-status="0" onclick="filterOrders(0)">待支付</button>
-                    <button class="status-tab" data-status="1" onclick="filterOrders(1)">已支付</button>
-                    <button class="status-tab" data-status="2" onclick="filterOrders(2)">已发货</button>
-                    <button class="status-tab" data-status="3" onclick="filterOrders(3)">已完成</button>
-                    <button class="status-tab" data-status="4" onclick="filterOrders(4)">已取消</button>
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr><th>订单号</th><th>用户ID</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
-                    </thead>
-                    <tbody id="ordersTableBody"></tbody>
-                </table>
-                <div class="pagination" id="ordersPagination"></div>
-            </section>
-
-            <!-- 用户管理 -->
-            <section id="page-users" class="page" style="display:none;">
-                <h2 class="page-title">用户管理</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr><th>ID</th><th>手机号</th><th>昵称</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
-                    </thead>
-                    <tbody id="usersTableBody"></tbody>
-                </table>
-                <div class="pagination" id="usersPagination"></div>
-            </section>
-
-            <!-- 优惠券管理 -->
-            <section id="page-coupons" class="page" style="display:none;">
-                <div class="page-header-row">
-                    <h2 class="page-title">优惠券管理</h2>
-                    <button class="btn btn-primary" onclick="openCouponModal()">+ 新增优惠券</button>
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr><th>ID</th><th>名称</th><th>减免</th><th>最低消费</th><th>剩余</th><th>有效期</th><th>状态</th></tr>
-                    </thead>
-                    <tbody id="couponsTableBody"></tbody>
-                </table>
-                <div class="pagination" id="couponsPagination"></div>
             </section>
 
             <!-- 分类管理 -->
@@ -299,6 +250,54 @@
                     </thead>
                     <tbody id="categoriesTableBody"></tbody>
                 </table>
+            </section>
+
+            <!-- 订单管理 -->
+            <section id="page-orders" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">订单管理</h2>
+                </div>
+                <div class="status-tabs">
+                    <button class="status-tab active" data-status="all" onclick="filterOrders('all')">全部</button>
+                    <button class="status-tab" data-status="0" onclick="filterOrders(0)">待支付</button>
+                    <button class="status-tab" data-status="1" onclick="filterOrders(1)">已支付</button>
+                    <button class="status-tab" data-status="2" onclick="filterOrders(2)">已发货</button>
+                    <button class="status-tab" data-status="3" onclick="filterOrders(3)">已签收</button>
+                    <button class="status-tab" data-status="4" onclick="filterOrders(4)">已取消</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>订单号</th><th>用户ID</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
+                <div class="pagination" id="ordersPagination"></div>
+            </section>
+
+            <!-- 优惠券管理 -->
+            <section id="page-coupons" class="page" style="display:none;">
+                <div class="page-header-row">
+                    <h2 class="page-title">优惠券管理</h2>
+                    <button class="btn btn-primary" onclick="openCouponModal()">+ 新增优惠券</button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>名称</th><th>减免</th><th>最低消费</th><th>剩余</th><th>有效期</th><th>状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="couponsTableBody"></tbody>
+                </table>
+            </section>
+
+            <!-- 用户管理 -->
+            <section id="page-users" class="page" style="display:none;">
+                <h2 class="page-title">用户管理</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>手机号</th><th>昵称</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+                <div class="pagination" id="usersPagination"></div>
             </section>
 
             <!-- 轮播图管理 -->
@@ -342,7 +341,7 @@
             <div class="form-group"><label>父分类ID（0=顶级）</label><input type="number" id="category_parentId" value="0"></div>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>图标URL</label><input type="text" id="category_pic"></div>
+            <div class="form-group"><label>图标URL（选填）</label><input type="text" id="category_pic"></div>
             <div class="form-group"><label>排序</label><input type="number" id="category_sortNum" value="0"></div>
         </div>
         <div class="modal-actions">
@@ -387,19 +386,40 @@
 </div>
 
 <div id="goodsModal" class="modal" style="display:none;">
-    <div class="modal-box">
-        <h3 id="goodsModalTitle">新增商品</h3>
+    <div class="modal-box" style="width:520px;">
+        <h3 id="goodsModalTitle">新增食物</h3>
         <div class="form-row">
             <div class="form-group"><label>分类ID</label><input type="number" id="goods_typeId" value="1"></div>
             <div class="form-group"><label>价格（分）</label><input type="number" id="goods_price" value="0"></div>
         </div>
-        <div class="form-group"><label>商品标题</label><input type="text" id="goods_title"></div>
+        <div class="form-group"><label>食物名称</label><input type="text" id="goods_title"></div>
         <div class="form-group"><label>副标题</label><input type="text" id="goods_subTitle"></div>
-        <div class="form-group"><label>主图 URL</label><input type="text" id="goods_mainPic"></div>
+
+        <!-- 主图：URL 输入 + 本地选择 + 预览 -->
+        <div class="form-group">
+            <label>主图</label>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <input type="text" id="goods_mainPic" placeholder="图片URL（上传后自动填入）" style="flex:1;">
+                <button type="button" class="btn btn-sm" onclick="document.getElementById('goodsPicFile').click()" style="white-space:nowrap;">📁 本地选择</button>
+                <input type="file" id="goodsPicFile" accept="image/*" style="display:none;" onchange="uploadGoodsPic(this)">
+            </div>
+            <div id="goodsPicPreview" style="margin-top:8px;"></div>
+        </div>
+
         <div class="form-row">
             <div class="form-group"><label>上架状态</label><select id="goods_status"><option value="1">上架</option><option value="0">下架</option></select></div>
             <div class="form-group"><label>排序</label><input type="number" id="goods_sortNum" value="0"></div>
         </div>
+
+        <!-- 商品规格管理（编辑模式才显示，新增保存后自动出现）-->
+        <div id="goodsSpecSection" style="display:none;margin-top:14px;border-top:1px solid #e2e8f0;padding-top:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <b style="font-size:14px;">📦 商品规格</b>
+                <button type="button" class="btn btn-sm" onclick="addSpecRow()">+ 新增规格</button>
+            </div>
+            <div id="goodsSpecList"></div>
+        </div>
+
         <div class="modal-actions">
             <button class="btn" onclick="closeModal('goodsModal')">取消</button>
             <button class="btn btn-primary" onclick="saveGoods()">保存</button>
@@ -409,7 +429,7 @@
 
 <div id="couponModal" class="modal" style="display:none;">
     <div class="modal-box">
-        <h3>新增优惠券</h3>
+        <h3 id="couponModalTitle">新增优惠券</h3>
         <div class="form-row">
             <div class="form-group"><label>减免金额（分）</label><input type="number" id="coupon_discount" value="0"></div>
             <div class="form-group"><label>最低消费（分）</label><input type="number" id="coupon_minAmount" value="0"></div>
@@ -423,6 +443,32 @@
         <div class="modal-actions">
             <button class="btn" onclick="closeModal('couponModal')">取消</button>
             <button class="btn btn-primary" onclick="saveCoupon()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 用户编辑弹窗 -->
+<div id="userModal" class="modal" style="display:none;">
+    <div class="modal-box">
+        <h3 id="userModalTitle">编辑用户</h3>
+        <input type="hidden" id="user_id">
+        <div class="form-group"><label>昵称</label><input type="text" id="user_nickname"></div>
+        <div class="form-group"><label>新密码（留空不修改）</label><input type="text" id="user_password" placeholder="不修改请留空"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('userModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveUser()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 订单详情弹窗 -->
+<div id="orderDetailModal" class="modal" style="display:none;">
+    <div class="modal-box" style="width:620px;">
+        <h3>订单详情</h3>
+        <div id="orderDetailContent"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('orderDetailModal')">关闭</button>
+            <button class="btn btn-primary" id="orderShipBtn" style="display:none;" onclick="shipOrderFromDetail()">发货</button>
         </div>
     </div>
 </div>

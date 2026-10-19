@@ -17,13 +17,13 @@ import org.lzy.shop.server.config.SearchKeywords
 import org.lzy.shop.server.config.Users
 
 /**
- * 商品/搜索相关路由 —— 对齐 App 端 GoodsApi.kt
+ * 食物/搜索相关路由 —— 对齐 App 端 GoodsApi.kt
  *
  * 接口列表：
- *   GET  app/page/goodsDetail         商品详情
- *   POST app/goods/spec/list          商品规格列表（真实 DB）
- *   POST app/goods/comment/page       商品评论分页（真实 DB）
- *   POST app/goods/info/page          搜索商品分页
+ *   GET  app/page/goodsDetail         食物详情
+ *   POST app/foods/spec/list          食物规格列表（真实 DB）
+ *   POST app/goods/comment/page       食物评论分页（真实 DB）
+ *   POST app/goods/info/page          搜索食物分页
  *   POST app/goods/search/keyword/list  搜索热门关键词（真实 DB）
  */
 fun Route.configureGoodsRoutes() {
@@ -79,15 +79,15 @@ fun Route.configureGoodsRoutes() {
         }
     }
 
-    post("goods/spec/list") {
-        @Serializable data class Req(val goodsId: Long)
+    post("foods/spec/list") {
+        @Serializable data class Req(val foodsId: Long)
         val req = runCatching { call.receive<Req>() }.getOrNull()
             ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
 
         @Serializable data class SpecItem(val id: Long, val spec: String, val price: Int, val stock: Int)
 
         suspendTransaction {
-            val specs = GoodsSpecs.selectAll().where { GoodsSpecs.goodsId eq req.goodsId }
+            val specs = GoodsSpecs.selectAll().where { GoodsSpecs.goodsId eq req.foodsId }
                 .map { row ->
                     SpecItem(
                         id = row[GoodsSpecs.id],

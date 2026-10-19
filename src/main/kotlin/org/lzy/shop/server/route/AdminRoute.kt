@@ -24,6 +24,10 @@ import org.lzy.shop.server.config.Orders
 import org.lzy.shop.server.config.SearchKeywords
 import org.lzy.shop.server.config.Users
 import org.lzy.shop.server.config.Goods as GoodsTable
+import org.lzy.shop.server.config.GoodsSpecs
+import java.io.File
+import java.util.Base64
+import java.util.UUID
 
 /**
  * 后台管理路由 —— 以 /admin/ 开头
@@ -182,7 +186,7 @@ fun Route.configureAdminRoutes() {
                 GoodsTable.selectAll().where { GoodsTable.title like "%$keyword%" }
             } else {
                 GoodsTable.selectAll()
-            }.orderBy(GoodsTable.id, SortOrder.DESC)
+            }.orderBy(GoodsTable.id, SortOrder.ASC)
                 .limit(10).offset(((page - 1) * 10).toLong())
                 .map { row ->
                     GoodsItem(
@@ -198,6 +202,108 @@ fun Route.configureAdminRoutes() {
                 }
 
             call.respond(ok(PageResult(total, list)))
+        }
+    }
+
+    // ===== 商品详情（编辑时回显）=====
+    get("goods/detail") {
+        val id = call.request.queryParameters["id"]?.toLongOrNull()
+            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "id 参数无效"))
+
+        @Serializable data class GoodsDetail(
+            val id: Long, val typeId: Long, val title: String,
+            val subTitle: String? = null, val mainPic: String,
+            val price: Int, val sold: Int, val status: Int,
+            val sortNum: Int, val recommend: Boolean, val featured: Boolean
+        )
+
+        suspendTransaction {
+            val row = GoodsTable.selectAll().where { GoodsTable.id eq id }.firstOrNull()
+                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+
+            call.respond(ok(GoodsDetail(
+                id = row[GoodsTable.id],
+                typeId = row[GoodsTable.typeId],
+                title = row[GoodsTable.title],
+                subTitle = row[GoodsTable.subTitle],
+                mainPic = row[GoodsTable.mainPic],
+                price = row[GoodsTable.price],
+                sold = row[GoodsTable.sold],
+                status = row[GoodsTable.status],
+                sortNum = row[GoodsTable.sortNum],
+                recommend = row[GoodsTable.recommend],
+                featured = row[GoodsTable.featured]
+            )))
+        }
+    }
+
+    // ===== 食物规格管理 =====
+    // 规格列表（按 foodsId 查）
+    get("foods/spec/list") {
+        val foodsId = call.request.queryParameters["foodsId"]?.toLongOrNull()
+            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "foodsId 参数无效"))
+
+        @Serializable data class SpecItem(val id: Long, val foodsId: Long, val spec: String, val price: Int, val stock: Int)
+
+        suspendTransaction {
+            val specList = GoodsSpecs.selectAll().where { GoodsSpecs.goodsId eq foodsId }
+                .orderBy(GoodsSpecs.id, SortOrder.ASC)
+                .map { row ->
+                    SpecItem(
+                        id = row[GoodsSpecs.id],
+                        foodsId = row[GoodsSpecs.goodsId],
+                        spec = row[GoodsSpecs.spec],
+                        price = row[GoodsSpecs.price],
+                        stock = row[GoodsSpecs.stock]
+                    )
+                }
+            call.respond(ok(specList))
+        }
+    }
+
+    post("foods/spec/add") {
+        @Serializable data class Req(val foodsId: Long, val spec: String, val price: Int, val stock: Int = 0)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        if (req.spec.isBlank()) return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "规格描述不能为空"))
+
+        suspendTransaction {
+            GoodsSpecs.insert {
+                it[GoodsSpecs.goodsId] = req.foodsId
+                it[GoodsSpecs.spec] = req.spec
+                it[GoodsSpecs.price] = req.price
+                it[GoodsSpecs.stock] = req.stock
+            }
+            call.respond(okMsg("新增规格"))
+        }
+    }
+
+    put("foods/spec/update") {
+        @Serializable data class Req(val id: Long, val spec: String? = null, val price: Int? = null, val stock: Int? = null)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = GoodsSpecs.update({ GoodsSpecs.id eq req.id }) {
+                req.spec?.let { v -> it[GoodsSpecs.spec] = v }
+                req.price?.let { v -> it[GoodsSpecs.price] = v }
+                req.stock?.let { v -> it[GoodsSpecs.stock] = v }
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "规格不存在"))
+            else call.respond(okMsg("修改规格"))
+        }
+    }
+
+    delete("foods/spec/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val deleted = GoodsSpecs.deleteWhere { GoodsSpecs.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "规格不存在"))
+            else call.respond(okMsg("删除规格"))
         }
     }
 
@@ -462,6 +568,23 @@ fun Route.configureAdminRoutes() {
                 } else {
                     call.respond(okMsg("更新用户状态"))
                 }
+        }
+    }
+
+    // 用户编辑（昵称、密码）
+    put("user/edit") {
+        @Serializable data class Req(val userId: Long, val nickname: String? = null, val password: String? = null)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = Users.update({ Users.id eq req.userId }) {
+                req.nickname?.let { v -> it[Users.nickname] = v }
+                req.password?.let { v -> it[Users.password] = v }
+                it[Users.updateTime] = System.currentTimeMillis().toString()
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "用户不存在"))
+            else call.respond(okMsg("编辑用户"))
         }
     }
 
@@ -749,5 +872,47 @@ fun Route.configureAdminRoutes() {
             if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "关键词不存在"))
             else call.respond(okMsg("删除关键词"))
         }
+    }
+
+    put("keyword/update") {
+        @Serializable data class Req(val id: Long, val keyword: String? = null, val sortNum: Int? = null, val isHot: Boolean? = null)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = SearchKeywords.update({ SearchKeywords.id eq req.id }) {
+                req.keyword?.let { v -> it[SearchKeywords.keyword] = v }
+                req.sortNum?.let { v -> it[SearchKeywords.sortNum] = v }
+                req.isHot?.let { v -> it[SearchKeywords.isHot] = v }
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "关键词不存在"))
+            else call.respond(okMsg("编辑关键词"))
+        }
+    }
+
+    // ===== 图片上传（base64 数据方案，无 multipart 依赖）=====
+    // 前端把文件读成 DataURL（data:image/png;base64,xxxx），后端解码存本地 uploads/ 目录
+    post("upload/image") {
+        @Serializable data class UploadReq(val dataUrl: String)
+        val req = runCatching { call.receive<UploadReq>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        // dataUrl 格式: data:image/png;base64,xxxxxxxx
+        val match = Regex("""^data:image/(\w+);base64,(.+)$""").find(req.dataUrl.trim())
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "无效的图片数据"))
+
+        val ext = match.groupValues[1].ifBlank { "jpg" }.let { if (it.length > 5) "jpg" else it }
+        val base64 = match.groupValues[2]
+        val safeName = UUID.randomUUID().toString().replace("-", "") + "." + ext
+
+        val uploadDir = File(System.getProperty("user.dir"), "uploads")
+        if (!uploadDir.exists()) uploadDir.mkdirs()
+
+        val target = File(uploadDir, safeName)
+        val bytes = Base64.getDecoder().decode(base64)
+        target.writeBytes(bytes)
+
+        @Serializable data class UploadResult(val url: String)
+        call.respond(ok(UploadResult(url = "/uploads/$safeName")))
     }
 }

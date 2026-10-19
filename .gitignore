@@ -4,6 +4,9 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
 
+# Kotlin 编译缓存
+.kotlin/
+
 # IDE
 .idea/
 *.iml
@@ -16,6 +19,9 @@ data/
 *.mv.db
 *.trace.db
 *.lock.db
+
+# 本地图片上传目录（运行时产生）
+uploads/
 
 # 日志
 *.log

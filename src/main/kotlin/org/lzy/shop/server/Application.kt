@@ -9,6 +9,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.resource
 import io.ktor.server.http.content.resources
 import io.ktor.server.http.content.static
+import io.ktor.server.http.content.staticFiles
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.compression.Compression
@@ -156,25 +157,23 @@ fun Application.module() {
             configureAllAppRoutes()
         }
 
-        // ====== Admin 前端页面（静态资源） ======
-        // 放在 route("admin") 前面，避免路由组抢先匹配 /admin 根路径导致 static 永远不被调用
-        // static 内部是精确文件匹配，不会拦截 /admin/* 下的 API 请求
+        // ====== /uploads/ 本地文件访问（管理后台图片上传用）======
+        // 和 AdminRoute 的 upload/image 接口配对：上传到 uploads/ 目录，通过 /uploads/xxx.jpg 访问
+        staticFiles("uploads", java.io.File(System.getProperty("user.dir"), "uploads"))
+
+        // ====== Admin 前端页面（静态资源 + 根路径处理） ======
+        // static("admin") 处理 /admin/index.html、/admin/style.css、/admin/app.js 等精确文件
         static("admin") {
             resources("admin")
-            // SPA 回退：找不到文件时返回 index.html（方便前端路由）
-            resource("index.html", "admin/index.html")
-            get {
-                resource("admin/index.html")
-            }
         }
+        // /admin 根路径直接返回 index.html（Ktor resource API）
+        resource("admin", "admin/index.html")
+        // /admin/ 带尾斜杠也返回 index.html
+        resource("admin/", "admin/index.html")
 
-        // ====== Admin API（后台管理） ======
-        // /admin 根路径由上面的 static("admin") 处理，但 route("admin") 注册在同一路径层级会抢先匹配，
-        // 所以这里加一个根路径 GET handler 返回 index.html，避免 StatusPages 拦截返回 404
+        // ====== Admin API（后台管理接口） ======
+        // 放在 static 之后、同一路径层级，configureAdminRoutes() 内部的 post/get 子路由会自然匹配
         route("admin") {
-            get {
-                call.respondRedirect("/admin/index.html")
-            }
             configureAdminRoutes()
         }
     }
