@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FF6B35">
+    <title>食鲜优选 — 新鲜到家</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="phone-frame">
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <span class="time">9:41</span>
+            <span class="icons">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M2 22h20V2L12 7 2 22z"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+            </span>
+        </div>
+
+        <!-- 内容区 -->
+        <main class="content" id="app">
+
+            <!-- ============ 🏠 首页 ============ -->
+            <section class="page active" id="page-home">
+                <!-- 顶部搜索栏 -->
+                <header class="header-home">
+                    <div class="location">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>北京·朝阳</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                    </div>
+                    <div class="search-bar" onclick="navigateTo('search')">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <span class="placeholder">搜索零食、饮料、水果...</span>
+                    </div>
+                    <div class="msg-icon" onclick="navigateTo('notice')">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                        <span class="dot"></span>
+                    </div>
+                </header>
+
+                <!-- 轮播图 -->
+                <div class="banner-swiper">
+                    <div class="banner-track">
+                        <img src="images/banner-1.jpg" class="banner-slide" alt="">
+                        <img src="images/banner-2.jpg" class="banner-slide" alt="">
+                        <img src="images/banner-3.jpg" class="banner-slide" alt="">
+                    </div>
+                    <div class="banner-dots">
+                        <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+                    </div>
+                </div>
+
+                <!-- 8 个分类入口 -->
+                <div class="section">
+                    <div class="category-grid">
+                        <a class="cat-item" onclick="scrollToCategory('snack')">
+                            <div class="cat-icon"><img src="images/cat-snack.jpg"></div>
+                            <span>休闲零食</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('drink')">
+                            <div class="cat-icon"><img src="images/cat-drink.jpg"></div>
+                            <span>饮料冲调</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('oil')">
+                            <div class="cat-icon"><img src="images/cat-oil.jpg"></div>
+                            <span>粮油调味</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('instant')">
+                            <div class="cat-icon"><img src="images/cat-instant.jpg"></div>
+                            <span>方便速食</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('fresh')">
+                            <div class="cat-icon"><img src="images/cat-fresh.jpg"></div>
+                            <span>生鲜果蔬</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('health')">
+                            <div class="cat-icon"><img src="images/cat-health.jpg"></div>
+                            <span>保健食品</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('tea')">
+                            <div class="cat-icon"><img src="images/cat-tea.jpg"></div>
+                            <span>茗茶酒水</span>
+                        </a>
+                        <a class="cat-item" onclick="scrollToCategory('choco')">
+                            <div class="cat-icon"><img src="images/cat-choco.jpg"></div>
+                            <span>糖巧礼盒</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 限时精选 -->
+                <div class="section flash-sale">
+                    <div class="section-title">
+                        <div class="title-left">
+                            <span class="title-icon">⚡</span>
+                            <h3>限时精选</h3>
+                            <span class="title-sub">距结束 <b class="countdown">02:34:51</b></span>
+                        </div>
+                        <span class="title-more">查看全部 ›</span>
+                    </div>
+                    <div class="horizontal-scroll">
+                        <div class="goods-card" onclick="navigateTo('foodDetail', {id:1})">
+                            <div class="goods-img"><img src="images/cat-snack.jpg"><span class="tag-sale">¥9.9</span></div>
+                            <div class="goods-info">
+                                <div class="goods-title">乐事薯片原味大包</div>
+                                <div class="goods-price"><b>¥9.9</b><span>¥15.9</span></div>
+                            </div>
+                        </div>
+                        <div class="goods-card" onclick="navigateTo('foodDetail', {id:2})">
+                            <div class="goods-img"><img src="images/cat-fresh.jpg"><span class="tag-sale">¥5.9</span></div>
+                            <div class="goods-info">
+                                <div class="goods-title">红富士苹果 2斤装</div>
+                                <div class="goods-price"><b>¥5.9</b><span>¥12.8</span></div>
+                            </div>
+                        </div>
+                        <div class="goods-card" onclick="navigateTo('foodDetail', {id:3})">
+                            <div class="goods-img"><img src="images/cat-drink.jpg"><span class="tag-sale">¥29</span></div>
+                            <div class="goods-info">
+                                <div class="goods-title">农夫山泉24瓶整箱</div>
+                                <div class="goods-price"><b>¥29</b><span>¥48</span></div>
+                            </div>
+                        </div>
+                        <div class="goods-card" onclick="navigateTo('foodDetail', {id:4})">
+                            <div class="goods-img"><img src="images/cat-instant.jpg"><span class="tag-sale">¥3.9</span></div>
+                            <div class="goods-info">
+                                <div class="goods-title">康师傅红烧牛肉面</div>
+                                <div class="goods-price"><b>¥3.9</b><span>¥5.5</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 领券入口 -->
+                <div class="coupon-banner" onclick="navigateTo('coupon')">
+                    <div class="coupon-left">
+                        <span class="coupon-tag">🎁 新人专享</span>
+                        <div class="coupon-money">¥10</div>
+                        <div class="coupon-label">满50可用</div>
+                    </div>
+                    <div class="coupon-right">
+                        <div class="coupon-btn">立即领取</div>
+                        <div class="coupon-tip">还有 3 张可领</div>
+                    </div>
+                </div>
+
+                <!-- 推荐商品 -->
+                <div class="section">
+                    <div class="section-title">
+                        <div class="title-left"><h3>为你推荐</h3><span class="title-sub">精选好货</span></div>
+                    </div>
+                    <div class="goods-grid">
+                        <div class="goods-card vertical" onclick="navigateTo('foodDetail', {id:5})">
+                            <div class="goods-img"><img src="images/cat-snack.jpg"></div>
+                            <div class="goods-info">
+                                <div class="goods-title">三只松鼠每日坚果750g</div>
+                                <div class="goods-desc">30包独立包装 · 孕妇儿童零食</div>
+                                <div class="goods-bottom"><div class="goods-price"><b>¥69</b><span>¥99</span></div><button class="btn-add">+</button></div>
+                            </div>
+                        </div>
+                        <div class="goods-card vertical" onclick="navigateTo('foodDetail', {id:6})">
+                            <div class="goods-img"><img src="images/cat-drink.jpg"></div>
+                            <div class="goods-info">
+                                <div class="goods-title">伊利纯牛奶250ml×16盒</div>
+                                <div class="goods-desc">优质奶源 · 营养早餐</div>
+                                <div class="goods-bottom"><div class="goods-price"><b>¥45</b><span>¥68</span></div><button class="btn-add">+</button></div>
+                            </div>
+                        </div>
+                        <div class="goods-card vertical" onclick="navigateTo('foodDetail', {id:7})">
+                            <div class="goods-img"><img src="images/cat-fresh.jpg"></div>
+                            <div class="goods-info">
+                                <div class="goods-title">智利车厘子 J级 1kg</div>
+                                <div class="goods-desc">进口水果 · 顺丰冷链</div>
+                                <div class="goods-bottom"><div class="goods-price"><b>¥128</b><span>¥198</span></div><button class="btn-add">+</button></div>
+                            </div>
+                        </div>
+                        <div class="goods-card vertical" onclick="navigateTo('foodDetail', {id:8})">
+                            <div class="goods-img"><img src="images/cat-instant.jpg"></div>
+                            <div class="goods-info">
+                                <div class="goods-title">海底捞自热火锅麻辣味</div>
+                                <div class="goods-desc">懒人速食 · 15分钟即享</div>
+                                <div class="goods-bottom"><div class="goods-price"><b>¥29.9</b><span>¥39.9</span></div><button class="btn-add">+</button></div>
+                            </div>
+                        </div>
+                        <div class="goods-card vertical" onclick="navigateTo('foodDetail', {id:9})">
+                            <div class="goods-img"><img src="images/cat-tea.jpg"></div>
+                            <div class="goods-info">
+                                <div class="goods-title">云南普洱茶饼357g</div>
+                                <div class="goods-desc">陈香浓郁 · 送礼佳品</div>
+                                <div class="goods-bottom"><div class="goods-price"><b>¥188</b><span>¥268</span></div><button class="btn-add">+</button></div>
+                            </div>
+                        </div>
+                        <div class="goods-card vertical" onclick="navigateTo('foodDetail', {id:10})">
+                            <div class="goods-img"><img src="images/cat-oil.jpg"></div>
+                            <div class="goods-info">
+                                <div class="goods-title">五常稻花香大米5kg</div>
+                                <div class="goods-desc">东北新米 · 香糯可口</div>
+                                <div class="goods-bottom"><div class="goods-price"><b>¥59</b><span>¥79</span></div><button class="btn-add">+</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-placeholder"></div>
+            </section>
+
+            <!-- ============ 🍳 菜谱 Tab ============ -->
+            <section class="page" id="page-recipe">
+                <header class="header-simple">
+                    <h1 class="page-title">🍳 今日菜谱</h1>
+                    <p class="page-sub">选一道菜，一键加购食材</p>
+                </header>
+
+                <!-- 菜谱分类筛选 -->
+                <div class="chip-scroll">
+                    <div class="chip active">全部</div>
+                    <div class="chip">家常菜</div>
+                    <div class="chip">快手菜</div>
+                    <div class="chip">甜品</div>
+                    <div class="chip">饮品</div>
+                    <div class="chip">主食</div>
+                </div>
+
+                <!-- 菜谱列表 -->
+                <div class="recipe-list">
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:1})">
+                        <div class="recipe-img"><img src="images/recipe-1.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>番茄炒蛋</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 15分钟</span>
+                                <span>🥗 4种食材</span>
+                            </div>
+                            <p class="recipe-desc">经典家常菜，酸甜开胃</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:2})">
+                        <div class="recipe-img"><img src="images/recipe-2.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>红烧牛肉面</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 10分钟</span>
+                                <span>🥗 3种食材</span>
+                            </div>
+                            <p class="recipe-desc">快手美味方便面升级</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:3})">
+                        <div class="recipe-img"><img src="images/recipe-3.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>黄油煎苹果</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 10分钟</span>
+                                <span>🥗 3种食材</span>
+                            </div>
+                            <p class="recipe-desc">甜品小能手，高颜值下午茶</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:4})">
+                        <div class="recipe-img"><img src="images/recipe-4.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>自热火锅豪华版</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 20分钟</span>
+                                <span>🥗 3种食材</span>
+                            </div>
+                            <p class="recipe-desc">懒人必备，15分钟火锅大餐</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:5})">
+                        <div class="recipe-img"><img src="images/recipe-5.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>牛奶咖啡拿铁</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 5分钟</span>
+                                <span>🥗 2种食材</span>
+                            </div>
+                            <p class="recipe-desc">在家也能做的咖啡店品质</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:6})">
+                        <div class="recipe-img"><img src="images/recipe-6.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>苹果牛奶甜品</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 5分钟</span>
+                                <span>🥗 3种食材</span>
+                            </div>
+                            <p class="recipe-desc">营养早餐首选，简单又美味</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:7})">
+                        <div class="recipe-img"><img src="images/recipe-7.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>大米香粥</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag easy">简单</span>
+                                <span>⏱ 40分钟</span>
+                                <span>🥗 3种食材</span>
+                            </div>
+                            <p class="recipe-desc">养胃好选择，软糯绵密</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                    <div class="recipe-card" onclick="navigateTo('recipeDetail', {id:8})">
+                        <div class="recipe-img"><img src="images/recipe-8.jpg"></div>
+                        <div class="recipe-info">
+                            <h4>黄油巧克力拼盘</h4>
+                            <div class="recipe-meta">
+                                <span class="meta-tag medium">中等</span>
+                                <span>⏱ 30分钟</span>
+                                <span>🥗 3种食材</span>
+                            </div>
+                            <p class="recipe-desc">下午茶小甜点，精致摆盘</p>
+                            <button class="btn-primary-sm" onclick="event.stopPropagation()">一键加购食材</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-placeholder"></div>
+            </section>
+
+            <!-- ============ 🛒 购物车 Tab ============ -->
+            <section class="page" id="page-cart">
+                <header class="header-simple">
+                    <h1 class="page-title">🛒 购物车</h1>
+                    <span class="cart-edit" onclick="toggleCartEdit()">管理</span>
+                </header>
+                <div class="cart-list">
+                    <div class="cart-item">
+                        <div class="checkbox checked"></div>
+                        <img class="cart-img" src="images/cat-snack.jpg">
+                        <div class="cart-info">
+                            <div class="cart-title">三只松鼠每日坚果750g</div>
+                            <div class="cart-spec">原味 / 750g</div>
+                            <div class="cart-bottom">
+                                <span class="cart-price">¥69</span>
+                                <div class="stepper"><button class="step-minus">-</button><span>1</span><button class="step-plus">+</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cart-item">
+                        <div class="checkbox checked"></div>
+                        <img class="cart-img" src="images/cat-drink.jpg">
+                        <div class="cart-info">
+                            <div class="cart-title">伊利纯牛奶250ml×16盒</div>
+                            <div class="cart-spec">整箱 / 16盒</div>
+                            <div class="cart-bottom">
+                                <span class="cart-price">¥45</span>
+                                <div class="stepper"><button class="step-minus">-</button><span>2</span><button class="step-plus">+</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cart-item">
+                        <div class="checkbox"></div>
+                        <img class="cart-img" src="images/cat-instant.jpg">
+                        <div class="cart-info">
+                            <div class="cart-title">海底捞自热火锅麻辣味</div>
+                            <div class="cart-spec">麻辣味 / 盒装</div>
+                            <div class="cart-bottom">
+                                <span class="cart-price">¥29.9</span>
+                                <div class="stepper"><button class="step-minus">-</button><span>1</span><button class="step-plus">+</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 底部结算栏 -->
+                <div class="cart-footer">
+                    <div class="cart-select-all">
+                        <div class="checkbox checked"></div>
+                        <span>全选</span>
+                    </div>
+                    <div class="cart-total">
+                        <span>合计：</span><b>¥159</b>
+                        <span class="cart-save">已省 ¥30</span>
+                    </div>
+                    <button class="btn-checkout" onclick="navigateTo('confirmOrder')">去结算(3)</button>
+                </div>
+            </section>
+
+            <!-- ============ 👤 我的 Tab ============ -->
+            <section class="page" id="page-profile">
+                <!-- 头部 -->
+                <div class="profile-header">
+                    <div class="avatar">
+                        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                    </div>
+                    <div class="profile-info">
+                        <h3>鲜食爱好者</h3>
+                        <span>会员等级：银卡会员 ›</span>
+                    </div>
+                    <svg class="profile-setting" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+
+                <!-- 我的订单 -->
+                <div class="order-section">
+                    <div class="section-head">
+                        <h4>我的订单</h4>
+                        <span onclick="navigateTo('orderList')">全部订单 ›</span>
+                    </div>
+                    <div class="order-tabs">
+                        <div class="order-tab">
+                            <div class="order-icon">💳<span class="red-dot">2</span></div>
+                            <span>待支付</span>
+                        </div>
+                        <div class="order-tab">
+                            <div class="order-icon">📦</div>
+                            <span>待发货</span>
+                        </div>
+                        <div class="order-tab">
+                            <div class="order-icon">🚚</div>
+                            <span>待收货</span>
+                        </div>
+                        <div class="order-tab">
+                            <div class="order-icon">⭐</div>
+                            <span>待评价</span>
+                        </div>
+                        <div class="order-tab">
+                            <div class="order-icon">↩️</div>
+                            <span>退款/售后</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 钱包福利 -->
+                <div class="wallet-row">
+                    <div class="wallet-item">
+                        <div class="wallet-num">128</div><div class="wallet-label">积分</div>
+                    </div>
+                    <div class="wallet-divider"></div>
+                    <div class="wallet-item" onclick="navigateTo('coupon')">
+                        <div class="wallet-num">3</div><div class="wallet-label">优惠券</div>
+                    </div>
+                    <div class="wallet-divider"></div>
+                    <div class="wallet-item">
+                        <div class="wallet-num">¥5.8</div><div class="wallet-label">余额</div>
+                    </div>
+                </div>
+
+                <!-- 功能菜单 -->
+                <div class="menu-list">
+                    <a class="menu-item" onclick="navigateTo('address')">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>收货地址</span><span class="menu-arrow">›</span>
+                    </a>
+                    <a class="menu-item" onclick="navigateTo('favorite')">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <span>我的收藏</span><span class="menu-arrow">›</span>
+                    </a>
+                    <a class="menu-item" onclick="navigateTo('notice')">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                        <span>消息通知</span><span class="menu-arrow">›</span>
+                    </a>
+                    <a class="menu-item" onclick="navigateTo('feedback')">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>意见反馈</span><span class="menu-arrow">›</span>
+                    </a>
+                    <a class="menu-item" onclick="navigateTo('service')">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                        <span>在线客服</span><span class="menu-arrow">›</span>
+                    </a>
+                    <a class="menu-item" onclick="navigateTo('coupon')">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+                        <span>领券中心</span><span class="menu-arrow">›</span>
+                    </a>
+                </div>
+                <div class="bottom-placeholder"></div>
+            </section>
+
+            <!-- ============ 搜索页（非 Tab） ============ -->
+            <section class="page sub-page" id="page-search">
+                <div class="search-header">
+                    <svg class="back-btn" onclick="goBack()" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                    <div class="search-bar focused">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" autofocus placeholder="搜索零食、饮料、水果...">
+                    </div>
+                    <span class="search-cancel" onclick="goBack()">取消</span>
+                </div>
+                <div class="search-hot">
+                    <div class="section-title"><h3>🔥 热门搜索</h3></div>
+                    <div class="chip-wrap">
+                        <span class="chip keyword">休闲零食</span>
+                        <span class="chip keyword">进口饼干</span>
+                        <span class="chip keyword">低脂牛奶</span>
+                        <span class="chip keyword">现磨咖啡</span>
+                        <span class="chip keyword">新鲜水果</span>
+                        <span class="chip keyword">有机蔬菜</span>
+                        <span class="chip keyword">五常大米</span>
+                        <span class="chip keyword">自热火锅</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ 食物详情页（非 Tab） ============ -->
+            <section class="page sub-page" id="page-foodDetail">
+                <div class="detail-top-bar">
+                    <svg onclick="goBack()" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                    <span>商品详情</span>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </div>
+                <div class="detail-banner"><img src="images/cat-snack.jpg"></div>
+                <div class="detail-info">
+                    <div class="detail-price-row">
+                        <span class="price-symbol">¥</span><span class="price-int">69</span><span class="price-decimal">.00</span>
+                        <span class="price-origin">¥99.00</span>
+                        <span class="price-tag">限时特惠</span>
+                    </div>
+                    <h2 class="detail-title">三只松鼠每日坚果750g 30包独立包装 孕妇儿童零食混合干果仁</h2>
+                    <div class="detail-meta">
+                        <span>月销 2.3万+</span>
+                        <span>好评率 98%</span>
+                        <span>顺丰包邮</span>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">规格选择</div>
+                    <div class="sku-row">
+                        <span class="sku-label">规格</span>
+                        <span class="sku-item active">750g/30包</span>
+                        <span class="sku-item">500g/20包</span>
+                    </div>
+                    <div class="sku-row">
+                        <span class="sku-label">口味</span>
+                        <span class="sku-item active">原味</span>
+                        <span class="sku-item">盐焗</span>
+                        <span class="sku-item">奶香</span>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">商品详情</div>
+                    <div class="detail-images">
+                        <img src="images/cat-snack.jpg">
+                        <img src="images/cat-fresh.jpg">
+                        <img src="images/cat-drink.jpg">
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">用户评价 <span class="review-count">(1286)</span></div>
+                    <div class="review-item">
+                        <div class="review-avatar">王</div>
+                        <div class="review-body">
+                            <div class="review-name">王***8</div>
+                            <div class="review-stars">★★★★★</div>
+                            <p>每天一包特别方便，味道很好，种类丰富，已经回购三次了！</p>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <div class="review-avatar">李</div>
+                        <div class="review-body">
+                            <div class="review-name">李***2</div>
+                            <div class="review-stars">★★★★</div>
+                            <p>孩子很喜欢吃，包装干净卫生，快递也很快。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-footer">
+                    <div class="detail-footer-left">
+                        <div class="ff-icon" onclick="toast('已收藏')"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>收藏</span></div>
+                        <div class="ff-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>客服</span></div>
+                    </div>
+                    <button class="btn-detail-add" onclick="toast('已加入购物车')">加入购物车</button>
+                    <button class="btn-detail-buy" onclick="navigateTo('confirmOrder')">立即购买</button>
+                </div>
+            </section>
+
+            <!-- ============ 菜谱详情页（非 Tab） ============ -->
+            <section class="page sub-page" id="page-recipeDetail">
+                <div class="detail-top-bar">
+                    <svg onclick="goBack()" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                    <span>菜谱详情</span>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+                </div>
+                <div class="recipe-detail-hero">
+                    <img src="images/recipe-1.jpg">
+                    <div class="recipe-detail-info">
+                        <h2>番茄炒蛋</h2>
+                        <div class="recipe-meta">
+                            <span class="meta-tag easy">简单</span>
+                            <span>⏱ 15分钟</span>
+                            <span>🍽 家常菜</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">🥬 所需食材</div>
+                    <div class="ingredient-list">
+                        <div class="ingredient-item">
+                            <div class="ingredient-name">有机西红柿</div>
+                            <div class="ingredient-qty">2个</div>
+                            <button class="btn-add-sm">+</button>
+                        </div>
+                        <div class="ingredient-item">
+                            <div class="ingredient-name">鸡蛋</div>
+                            <div class="ingredient-qty">3个</div>
+                            <button class="btn-add-sm">+</button>
+                        </div>
+                        <div class="ingredient-item">
+                            <div class="ingredient-name">食用盐</div>
+                            <div class="ingredient-qty">少许</div>
+                            <button class="btn-add-sm">+</button>
+                        </div>
+                        <div class="ingredient-item">
+                            <div class="ingredient-name">食用油</div>
+                            <div class="ingredient-qty">适量</div>
+                            <button class="btn-add-sm">+</button>
+                        </div>
+                    </div>
+                    <button class="btn-primary-outline">🛒 一键加购全部食材</button>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">📝 做法步骤</div>
+                    <div class="step-list">
+                        <div class="step-item"><span class="step-num">1</span><span>热锅放油，油温六成热时倒入打散的鸡蛋液</span></div>
+                        <div class="step-item"><span class="step-num">2</span><span>大火快速滑炒至鸡蛋金黄凝固，盛出备用</span></div>
+                        <div class="step-item"><span class="step-num">3</span><span>锅中留底油，倒入番茄块翻炒出汁</span></div>
+                        <div class="step-item"><span class="step-num">4</span><span>加盐调味，倒入鸡蛋翻炒均匀出锅</span></div>
+                    </div>
+                </div>
+                <div class="bottom-placeholder"></div>
+            </section>
+
+            <!-- ============ 确认订单页（非 Tab） ============ -->
+            <section class="page sub-page" id="page-confirmOrder">
+                <div class="detail-top-bar">
+                    <svg onclick="goBack()" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                    <span>确认订单</span>
+                </div>
+                <!-- 地址 -->
+                <div class="address-card">
+                    <div class="address-icon">📍</div>
+                    <div class="address-info">
+                        <div class="address-name">张三 <span>138****1234</span></div>
+                        <div class="address-detail">北京市朝阳区望京SOHO T3号楼 1201室</div>
+                    </div>
+                    <span class="address-edit">›</span>
+                </div>
+                <!-- 商品列表 -->
+                <div class="order-goods">
+                    <div class="cart-item">
+                        <img class="cart-img" src="images/cat-snack.jpg">
+                        <div class="cart-info">
+                            <div class="cart-title">三只松鼠每日坚果750g</div>
+                            <div class="cart-spec">原味 / 750g</div>
+                            <div class="cart-bottom"><span class="cart-price">¥69</span><span class="cart-qty">×1</span></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 优惠券 -->
+                <div class="order-row" onclick="toast('选择优惠券')">
+                    <span>优惠券</span>
+                    <span class="order-row-right"><span class="text-orange">-¥10</span> 1张可用 ›</span>
+                </div>
+                <!-- 备注 -->
+                <div class="order-row">
+                    <span>订单备注</span>
+                    <input class="order-remark" placeholder="选填，如有特殊要求可备注">
+                </div>
+                <!-- 金额 -->
+                <div class="order-amount">
+                    <div class="amount-row"><span>商品小计</span><span>¥69.00</span></div>
+                    <div class="amount-row"><span>运费</span><span class="text-green">包邮</span></div>
+                    <div class="amount-row"><span>优惠券</span><span class="text-orange">-¥10.00</span></div>
+                    <div class="amount-row total"><span>实付金额</span><span class="text-price">¥59.00</span></div>
+                </div>
+                <!-- 底部提交 -->
+                <div class="submit-bar">
+                    <div class="submit-total">实付：<b class="text-price">¥59.00</b></div>
+                    <button class="btn-submit-order" onclick="toast('下单成功！');navigateTo('home')">提交订单</button>
+                </div>
+            </section>
+
+            <!-- ============ 领券中心（非 Tab） ============ -->
+            <section class="page sub-page" id="page-coupon">
+                <div class="detail-top-bar">
+                    <svg onclick="goBack()" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                    <span>领券中心</span>
+                </div>
+                <div class="coupon-list">
+                    <div class="coupon-card available">
+                        <div class="coup-left"><span class="coup-symbol">¥</span><span class="coup-num">10</span></div>
+                        <div class="coup-mid">
+                            <div class="coup-title">新人满50减10</div>
+                            <div class="coup-desc">全场通用 · 有效期至 2026-12-31</div>
+                        </div>
+                        <button class="coup-btn">领取</button>
+                    </div>
+                    <div class="coupon-card available">
+                        <div class="coup-left"><span class="coup-symbol">¥</span><span class="coup-num">20</span></div>
+                        <div class="coup-mid">
+                            <div class="coup-title">零食满100减20</div>
+                            <div class="coup-desc">零食分类专用 · 限1张</div>
+                        </div>
+                        <button class="coup-btn">领取</button>
+                    </div>
+                    <div class="coupon-card available">
+                        <div class="coup-left"><span class="coup-symbol">¥</span><span class="coup-num">5</span></div>
+                        <div class="coup-mid">
+                            <div class="coup-title">饮料满30减5</div>
+                            <div class="coup-desc">饮料分类专用</div>
+                        </div>
+                        <button class="coup-btn">领取</button>
+                    </div>
+                    <div class="coupon-card disabled">
+                        <div class="coup-left"><span class="coup-symbol">¥</span><span class="coup-num">30</span></div>
+                        <div class="coup-mid">
+                            <div class="coup-title">生鲜满200减30</div>
+                            <div class="coup-desc">已领完</div>
+                        </div>
+                        <button class="coup-btn disabled">已领完</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ============ 底部导航栏 ============ -->
+        <nav class="tab-bar">
+            <div class="tab-item active" data-tab="home" onclick="switchTab('home')">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>首页</span>
+            </div>
+            <div class="tab-item" data-tab="recipe" onclick="switchTab('recipe')">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" x2="18" y1="17" y2="17"/></svg>
+                <span>菜谱</span>
+            </div>
+            <div class="tab-item" data-tab="cart" onclick="switchTab('cart')">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                <span>购物车</span>
+                <span class="cart-badge">3</span>
+            </div>
+            <div class="tab-item" data-tab="profile" onclick="switchTab('profile')">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>我的</span>
+            </div>
+        </nav>
+
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

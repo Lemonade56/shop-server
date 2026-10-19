@@ -161,6 +161,16 @@ fun Application.module() {
         // 和 AdminRoute 的 upload/image 接口配对：上传到 uploads/ 目录，通过 /uploads/xxx.jpg 访问
         staticFiles("uploads", java.io.File(System.getProperty("user.dir"), "uploads"))
 
+        // ====== App 前端页面（静态资源 + 根路径处理） ======
+        // static("app") 处理 /app/index.html、/app/css/*、/app/js/*、/app/images/* 等精确文件
+        static("app") {
+            resources("app")
+        }
+        // /app 根路径直接返回 index.html
+        resource("app", "app/index.html")
+        // /app/ 带尾斜杠也返回 index.html
+        resource("app/", "app/index.html")
+
         // ====== Admin 前端页面（静态资源 + 根路径处理） ======
         // static("admin") 处理 /admin/index.html、/admin/style.css、/admin/app.js 等精确文件
         static("admin") {
