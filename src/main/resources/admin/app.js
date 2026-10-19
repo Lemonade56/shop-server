@@ -193,7 +193,7 @@ function renderPagination(container, page, totalPages, onChange) {
 async function loadGoods(page = 1) {
     const keyword = document.getElementById('goodsKeyword')?.value || '';
     try {
-        const r = await api('GET', 'goods/list', { keyword, page });
+        const r = await api('GET', 'foods/list', { keyword, page });
         if (r.code !== 200) return;
         const tbody = document.getElementById('goodsTableBody');
         const list = r.data.list || [];
@@ -484,7 +484,7 @@ function openGoodsModal(id = null) {
 
     // 编辑模式：从后端拉详情并回显
     if (id) {
-        api('GET', 'goods/detail', { id }).then(r => {
+        api('GET', 'foods/detail', { id }).then(r => {
             if (r.code === 200 && r.data) {
                 const d = r.data;
                 document.getElementById('goods_typeId').value = d.typeId || 1;
@@ -759,7 +759,7 @@ async function saveGoods() {
             status: parseInt(document.getElementById('goods_status').value) || 1,
             sortNum: parseInt(document.getElementById('goods_sortNum').value) || 0
         };
-        const r = await api('PUT', 'goods/update', body);
+        const r = await api('PUT', 'foods/update', body);
         if (r.code === 200) { closeModal('goodsModal'); editingGoodsId = null; toast('编辑食物成功', 'success'); loadGoods(1); }
         else toast(r.message || '操作失败', 'error');
     } else {
@@ -772,7 +772,7 @@ async function saveGoods() {
             status: parseInt(document.getElementById('goods_status').value) || 1,
             sortNum: parseInt(document.getElementById('goods_sortNum').value) || 0
         };
-        const r = await api('POST', 'goods/add', body);
+        const r = await api('POST', 'foods/add', body);
         if (r.code === 200) { closeModal('goodsModal'); toast('新增食物成功', 'success'); loadGoods(1); }
         else toast(r.message || '操作失败', 'error');
     }
@@ -801,7 +801,7 @@ async function saveCoupon() {
 // ===== 删除 =====
 async function deleteGoods(id) {
     if (!confirm('确定删除该食物？（将下架）')) return;
-    const r = await api('DELETE', 'goods/delete', { id });
+    const r = await api('DELETE', 'foods/delete', { id });
     toast(r.code === 200 ? '删除食物成功' : r.message || '操作失败', r.code === 200 ? 'success' : 'error');
     if (r.code === 200) loadGoods(1);
 }

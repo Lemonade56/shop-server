@@ -17,22 +17,22 @@ import org.lzy.shop.server.config.SearchKeywords
 import org.lzy.shop.server.config.Users
 
 /**
- * 食物/搜索相关路由 —— 对齐 App 端 GoodsApi.kt
+ * 食物/搜索相关路由
  *
  * 接口列表：
- *   GET  app/page/goodsDetail         食物详情
- *   POST app/foods/spec/list          食物规格列表（真实 DB）
- *   POST app/goods/comment/page       食物评论分页（真实 DB）
- *   POST app/goods/info/page          搜索食物分页
- *   POST app/goods/search/keyword/list  搜索热门关键词（真实 DB）
+ *   GET  app/page/foodsDetail           食物详情
+ *   POST app/foods/spec/list             食物规格列表（真实 DB）
+ *   POST app/foods/comment/page          食物评论分页（真实 DB）
+ *   POST app/foods/info/page             搜索食物分页
+ *   POST app/foods/search/keyword/list   搜索热门关键词（真实 DB）
  */
-fun Route.configureGoodsRoutes() {
+fun Route.configureFoodsRoutes() {
 
-    get("page/goodsDetail") {
-        val goodsId = call.request.queryParameters["goodsId"]?.toLongOrNull()
-            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "goodsId 参数无效"))
+    get("page/foodsDetail") {
+        val foodsId = call.request.queryParameters["foodsId"]?.toLongOrNull()
+            ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "foodsId 参数无效"))
 
-        @Serializable data class Goods(
+        @Serializable data class Food(
             val id: Long, val typeId: Long, val title: String, val subTitle: String? = null,
             val mainPic: String, val pics: List<String> = emptyList(), val price: Int,
             val sold: Int = 0, val contentPics: List<String> = emptyList(),
@@ -40,14 +40,14 @@ fun Route.configureGoodsRoutes() {
             val status: Int = 1, val sortNum: Int = 0
         )
         @Serializable data class Detail(
-            val goodsInfo: Goods,
+            val foodInfo: Food,
             val coupon: List<String> = emptyList(),
             val comment: List<String> = emptyList()
         )
 
         suspendTransaction {
-            val row = GoodsTable.selectAll().where { GoodsTable.id eq goodsId }.firstOrNull()
-                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+            val row = GoodsTable.selectAll().where { GoodsTable.id eq foodsId }.firstOrNull()
+                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "食物不存在"))
 
             fun parseJsonArray(raw: String?): List<String> {
                 if (raw.isNullOrBlank()) return emptyList()
@@ -59,7 +59,7 @@ fun Route.configureGoodsRoutes() {
                 }.getOrDefault(emptyList())
             }
 
-            val goodsInfo = Goods(
+            val foodInfo = Food(
                 id = row[GoodsTable.id],
                 typeId = row[GoodsTable.typeId],
                 title = row[GoodsTable.title],
@@ -75,7 +75,7 @@ fun Route.configureGoodsRoutes() {
                 sortNum = row[GoodsTable.sortNum]
             )
 
-            call.respond(ok(Detail(goodsInfo = goodsInfo)))
+            call.respond(ok(Detail(foodInfo = foodInfo)))
         }
     }
 
@@ -101,8 +101,8 @@ fun Route.configureGoodsRoutes() {
         }
     }
 
-    post("goods/comment/page") {
-        @Serializable data class Req(val goodsId: Long = -1L, val page: Int = 1)
+    post("foods/comment/page") {
+        @Serializable data class Req(val foodsId: Long = -1L, val page: Int = 1)
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
         @Serializable data class CommentItem(
@@ -111,10 +111,10 @@ fun Route.configureGoodsRoutes() {
         )
 
         suspendTransaction {
-            val total = Comments.selectAll().where { Comments.goodsId eq req.goodsId }.count()
+            val total = Comments.selectAll().where { Comments.goodsId eq req.foodsId }.count()
 
             // 联查评论 + 用户昵称/头像
-            val list = Comments.innerJoin(Users).selectAll().where { Comments.goodsId eq req.goodsId }
+            val list = Comments.innerJoin(Users).selectAll().where { Comments.goodsId eq req.foodsId }
                 .orderBy(Comments.createTime, SortOrder.DESC)
                 .limit(10).offset(((req.page - 1) * 10).toLong())
                 .map { row ->
@@ -132,8 +132,8 @@ fun Route.configureGoodsRoutes() {
         }
     }
 
-    post("goods/info/page") {
-        // 商品列表 / 搜索
+    post("foods/info/page") {
+        // 食物列表 / 搜索
         // 参数：keyword 搜索关键词，typeId 分类筛选，sort 排序，minPrice/maxPrice 价格区间，page 页码
         @Serializable data class Req(
             val keyword: String = "", val typeId: Long? = null,
@@ -142,13 +142,13 @@ fun Route.configureGoodsRoutes() {
         )
         val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
-        @Serializable data class MiniGoods(
+        @Serializable data class MiniFood(
             val id: Long, val typeId: Long, val title: String, val subTitle: String? = null,
             val mainPic: String, val price: Int, val sold: Int = 0
         )
 
         suspendTransaction {
-            // 动态组合筛选条件（基础条件：上架商品）
+            // 动态组合筛选条件（基础条件：上架食物）
             var whereCond: Op<Boolean> = GoodsTable.status eq 1
 
             if (req.keyword.isNotBlank()) {
@@ -174,7 +174,7 @@ fun Route.configureGoodsRoutes() {
             val list = ordered
                 .limit(10).offset(((req.page - 1) * 10).toLong())
                 .map { row ->
-                    MiniGoods(
+                    MiniFood(
                         id = row[GoodsTable.id],
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
@@ -189,7 +189,7 @@ fun Route.configureGoodsRoutes() {
         }
     }
 
-    post("goods/search/keyword/list") {
+    post("foods/search/keyword/list") {
         @Serializable data class KeywordItem(val id: Long, val keyword: String)
 
         suspendTransaction {

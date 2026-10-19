@@ -38,10 +38,10 @@ import java.util.UUID
  * 接口列表：
  *   POST /admin/login                管理员登录（返回 token）
  *   GET  /admin/dashboard/stats      首页统计数据
- *   GET  /admin/goods/list           商品列表
- *   POST /admin/goods/add            新增商品
- *   PUT  /admin/goods/update         更新商品
- *   DELETE /admin/goods/delete       删除商品
+ *   GET  /admin/foods/list           食物列表
+ *   POST /admin/foods/add            新增食物
+ *   PUT  /admin/foods/update         更新食物
+ *   DELETE /admin/foods/delete       删除食物
  *   GET  /admin/order/list           订单列表
  *   POST /admin/order/ship           订单发货
  *   GET  /admin/user/list            用户列表
@@ -73,13 +73,13 @@ fun Route.configureAdminRoutes() {
     get("dashboard/stats") {
         @Serializable data class DaySales(val date: String, val amount: Long)
         @Serializable data class StatusCount(val status: Int, val label: String, val count: Long)
-        @Serializable data class TopGoods(val id: Long, val title: String, val pic: String, val sold: Long)
+        @Serializable data class TopFood(val id: Long, val title: String, val pic: String, val sold: Long)
         @Serializable data class RecentOrder(
             val id: Long, val orderNo: String, val userId: Long,
             val totalPrice: Int, val status: Int, val createTime: String
         )
         @Serializable data class DashboardStats(
-            val goodsCount: Long,
+            val foodsCount: Long,
             val orderCount: Long,
             val userCount: Long,
             val couponCount: Long,
@@ -87,12 +87,12 @@ fun Route.configureAdminRoutes() {
             val totalSales: Long,
             val sales7Days: List<DaySales>? = null,
             val orderStatusDist: List<StatusCount>? = null,
-            val topGoods: List<TopGoods>? = null,
+            val topFoods: List<TopFood>? = null,
             val recentOrders: List<RecentOrder>? = null
         )
 
         suspendTransaction {
-            val goodsCount = GoodsTable.selectAll().count()
+            val foodsCount = GoodsTable.selectAll().count()
             val orderCount = Orders.selectAll().count()
             val userCount = Users.selectAll().count()
             val couponCount = Coupons.selectAll().count()
@@ -130,11 +130,11 @@ fun Route.configureAdminRoutes() {
             }
 
             // --- 热销商品 TOP5 ---
-            val topGoods = GoodsTable.selectAll()
+            val topFoods = GoodsTable.selectAll()
                 .orderBy(GoodsTable.sold, SortOrder.DESC)
                 .limit(5)
                 .map { row ->
-                    TopGoods(
+                    TopFood(
                         id = row[GoodsTable.id],
                         title = row[GoodsTable.title],
                         pic = row[GoodsTable.mainPic],
@@ -158,18 +158,18 @@ fun Route.configureAdminRoutes() {
                 }
 
             call.respond(ok(DashboardStats(
-                goodsCount, orderCount, userCount, couponCount, paidOrders, totalSales,
-                sales7Days, orderStatusDist, topGoods, recentOrders
+                foodsCount, orderCount, userCount, couponCount, paidOrders, totalSales,
+                sales7Days, orderStatusDist, topFoods, recentOrders
             )))
         }
     }
 
-    // ===== 商品管理 =====
-    get("goods/list") {
+    // ===== 食物管理 =====
+    get("foods/list") {
         val keyword = call.request.queryParameters["keyword"] ?: ""
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
-        @Serializable data class GoodsItem(
+        @Serializable data class FoodItem(
             val id: Long, val typeId: Long, val title: String,
             val mainPic: String, val price: Int, val sold: Int,
             val status: Int, val createTime: String
@@ -189,7 +189,7 @@ fun Route.configureAdminRoutes() {
             }.orderBy(GoodsTable.id, SortOrder.ASC)
                 .limit(10).offset(((page - 1) * 10).toLong())
                 .map { row ->
-                    GoodsItem(
+                    FoodItem(
                         id = row[GoodsTable.id],
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
@@ -205,12 +205,12 @@ fun Route.configureAdminRoutes() {
         }
     }
 
-    // ===== 商品详情（编辑时回显）=====
-    get("goods/detail") {
+    // ===== 食物详情（编辑时回显）=====
+    get("foods/detail") {
         val id = call.request.queryParameters["id"]?.toLongOrNull()
             ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "id 参数无效"))
 
-        @Serializable data class GoodsDetail(
+        @Serializable data class FoodDetail(
             val id: Long, val typeId: Long, val title: String,
             val subTitle: String? = null, val mainPic: String,
             val price: Int, val sold: Int, val status: Int,
@@ -219,9 +219,9 @@ fun Route.configureAdminRoutes() {
 
         suspendTransaction {
             val row = GoodsTable.selectAll().where { GoodsTable.id eq id }.firstOrNull()
-                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+                ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "食物不存在"))
 
-            call.respond(ok(GoodsDetail(
+            call.respond(ok(FoodDetail(
                 id = row[GoodsTable.id],
                 typeId = row[GoodsTable.typeId],
                 title = row[GoodsTable.title],
@@ -307,7 +307,7 @@ fun Route.configureAdminRoutes() {
         }
     }
 
-    post("goods/add") {
+    post("foods/add") {
         @Serializable data class Req(
             val typeId: Long, val title: String, val subTitle: String? = null,
             val mainPic: String, val pics: String = "[]",
@@ -343,7 +343,7 @@ fun Route.configureAdminRoutes() {
         }
     }
 
-    put("goods/update") {
+    put("foods/update") {
         @Serializable data class Req(
             val id: Long, val typeId: Long? = null, val title: String? = null,
             val subTitle: String? = null, val mainPic: String? = null,
@@ -371,14 +371,14 @@ fun Route.configureAdminRoutes() {
             }
 
             if (updated == 0) {
-                    call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+                    call.respond(fail<String>(ResultCode.NOT_FOUND, "食物不存在"))
                 } else {
                     call.respond(okMsg("更新商品"))
                 }
             }
         }
 
-        delete("goods/delete") {
+        delete("foods/delete") {
         @Serializable data class Req(val id: Long)
         val req = runCatching { call.receive<Req>() }.getOrNull()
             ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
@@ -390,7 +390,7 @@ fun Route.configureAdminRoutes() {
             }
 
             if (updated == 0) {
-                    call.respond(fail<String>(ResultCode.NOT_FOUND, "商品不存在"))
+                    call.respond(fail<String>(ResultCode.NOT_FOUND, "食物不存在"))
                 } else {
                     call.respond(okMsg("删除商品"))
                 }

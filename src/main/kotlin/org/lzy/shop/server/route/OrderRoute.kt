@@ -38,7 +38,7 @@ private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
  *   GET  app/order/info/info            订单详情
  *   GET  app/order/info/confirm         确认收货
  *   POST app/dict/info/data             字典数据（公共）
- *   POST app/goods/comment/submit       提交商品评论（占位）
+ *   POST app/foods/comment/submit       提交食物评论（占位）
  */
 fun Route.configureOrderRoutes() {
 
@@ -92,7 +92,7 @@ fun Route.configureOrderRoutes() {
 
         post("order/info/create") {
             @Serializable
-            data class SelectedGoods(
+            data class SelectedFood(
                 val goodsId: Long,
                 val quantity: Int,
                 val specId: Long? = null,
@@ -104,7 +104,7 @@ fun Route.configureOrderRoutes() {
             @Serializable
             data class CreateOrderReq(
                 val addressId: Long,
-                val goodsList: List<SelectedGoods>,
+                val goodsList: List<SelectedFood>,
                 val couponId: Long? = null,
                 val remark: String = "",
                 val from: String = "product"        // "cart" 或 "product"
@@ -217,13 +217,13 @@ fun Route.configureOrderRoutes() {
             @Serializable data class Req(val page: Int = 1, val status: List<Int>? = null)
             val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
 
-            @Serializable data class OrderGoods(
+            @Serializable data class OrderFood(
                 val goodsId: Long, val title: String, val mainPic: String,
                 val specInfo: String? = null, val price: Int, val quantity: Int
             )
             @Serializable data class OrderItem(
                 val id: Long, val orderNo: String, val status: Int, val totalPrice: Int,
-                val createTime: String, val goodsList: List<OrderGoods>
+                val createTime: String, val goodsList: List<OrderFood>
             )
 
             val userId = call.currentUserId()
@@ -246,7 +246,7 @@ fun Route.configureOrderRoutes() {
                     val oid = orderRow[Orders.id]
                     val goodsList = OrderItems.selectAll().where { OrderItems.orderId eq oid }
                         .map { item ->
-                            OrderGoods(
+                            OrderFood(
                                 goodsId = item[OrderItems.goodsId],
                                 title = item[OrderItems.goodsTitle],
                                 mainPic = item[OrderItems.goodsMainPic],
@@ -423,7 +423,7 @@ fun Route.configureOrderRoutes() {
             val orderId = call.request.queryParameters["id"]?.toLongOrNull()
                 ?: return@get call.respond(fail<String>(ResultCode.BAD_REQUEST, "id 参数无效"))
 
-            @Serializable data class OrderGoods(
+            @Serializable data class OrderFood(
                 val goodsId: Long, val title: String, val mainPic: String,
                 val price: Int, val quantity: Int
             )
@@ -431,7 +431,7 @@ fun Route.configureOrderRoutes() {
                 val id: Long, val orderNo: String, val status: Int, val statusDesc: String,
                 val totalPrice: Int, val payPrice: Int, val remark: String,
                 val address: String,  // 地址快照 JSON 字符串
-                val goodsList: List<OrderGoods>, val createTime: String
+                val goodsList: List<OrderFood>, val createTime: String
             )
 
             suspendTransaction {
@@ -443,7 +443,7 @@ fun Route.configureOrderRoutes() {
 
                 val goodsList = OrderItems.selectAll().where { OrderItems.orderId eq oid }
                     .map { item ->
-                        OrderGoods(
+                        OrderFood(
                             goodsId = item[OrderItems.goodsId],
                             title = item[OrderItems.goodsTitle],
                             mainPic = item[OrderItems.goodsMainPic],
@@ -488,7 +488,7 @@ fun Route.configureOrderRoutes() {
             }
         }
 
-        post("goods/comment/submit") {
+        post("foods/comment/submit") {
             @Serializable data class Req(
                 val goodsId: Long, val content: String,
                 val images: List<String> = emptyList(), val orderId: Long? = null

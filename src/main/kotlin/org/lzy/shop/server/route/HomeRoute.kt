@@ -20,17 +20,17 @@ import org.lzy.shop.server.config.Goods
  *
  * 接口列表：
  *   GET  app/page/home            首页聚合数据（轮播+分类+推荐+优惠券）
- *   POST app/goods/type/list      商品分类列表
+ *   POST app/foods/type/list      食物分类列表
  *
- * 说明：商品列表分页 POST app/goods/info/page 由 GoodsRoute 统一提供，
- * 首页 goods 字段直接复用该接口返回即可。
+ * 说明：食物列表分页 POST app/foods/info/page 由 FoodsRoute 统一提供，
+ * 首页 foods 字段直接复用该接口返回即可。
  */
 fun Route.configureHomeRoutes() {
 
     get("page/home") {
         @Serializable data class Banner(val id: Long, val pic: String, val url: String = "")
         @Serializable data class Category(val id: Long, val name: String, val pic: String)
-        @Serializable data class MiniGoods(
+        @Serializable data class MiniFood(
             val id: Long, val typeId: Long, val title: String, val mainPic: String,
             val price: Int, val sold: Int = 0
         )
@@ -38,10 +38,10 @@ fun Route.configureHomeRoutes() {
             val banner: List<Banner>,
             val category: List<Category>,
             val categoryAll: List<Category>,
-            val flashSale: List<MiniGoods>,
-            val recommend: List<MiniGoods>,
+            val flashSale: List<MiniFood>,
+            val recommend: List<MiniFood>,
             val coupon: List<String>,
-            val goods: List<MiniGoods>
+            val foods: List<MiniFood>
         )
 
         suspendTransaction {
@@ -83,7 +83,7 @@ fun Route.configureHomeRoutes() {
             val flashSale = Goods.selectAll().where { (Goods.featured eq true) and (Goods.status eq 1) }
                 .limit(2)
                 .map { row ->
-                    MiniGoods(
+                    MiniFood(
                         id = row[Goods.id],
                         typeId = row[Goods.typeId],
                         title = row[Goods.title],
@@ -97,7 +97,7 @@ fun Route.configureHomeRoutes() {
             val recommend = Goods.selectAll().where { (Goods.recommend eq true) and (Goods.status eq 1) }
                 .limit(4)
                 .map { row ->
-                    MiniGoods(
+                    MiniFood(
                         id = row[Goods.id],
                         typeId = row[Goods.typeId],
                         title = row[Goods.title],
@@ -116,14 +116,14 @@ fun Route.configureHomeRoutes() {
                         flashSale = flashSale,
                         recommend = recommend,
                         coupon = emptyList(),
-                        goods = recommend
+                        foods = recommend
                     )
                 )
             )
         }
     }
 
-    post("goods/type/list") {
+    post("foods/type/list") {
         // 分类列表：扁平结构，前端可按 parentId 自行组装树
         @Serializable data class CategoryItem(
             val id: Long, val name: String, val parentId: Long,
@@ -148,6 +148,6 @@ fun Route.configureHomeRoutes() {
         }
     }
 
-    // 说明：商品列表分页 POST app/goods/info/page 已由 GoodsRoute 提供，
-    // 首页需要的 goods 字段复用同一个接口即可，这里不再重复注册避免路由冲突。
+    // 说明：食物列表分页 POST app/foods/info/page 已由 FoodsRoute 提供，
+    // 首页需要的 foods 字段复用同一个接口即可，这里不再重复注册避免路由冲突。
 }

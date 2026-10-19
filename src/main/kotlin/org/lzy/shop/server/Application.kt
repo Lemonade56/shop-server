@@ -183,7 +183,7 @@ fun Application.module() {
 fun Route.configureAllAppRoutes() {
     configureUserRoutes()
     configureHomeRoutes()
-    configureGoodsRoutes()
+    configureFoodsRoutes()
     configureOrderRoutes()
     configureAddressRoutes()
     configureCouponRoutes()
