@@ -42,7 +42,7 @@ fun Route.configureHomeRoutes() {
             val flashSale: List<MiniFood>,
             val recommend: List<MiniFood>,
             val coupon: List<String>,
-            val foods: List<MiniFood>
+            val foods: PageResult<MiniFood>
         )
 
         suspendTransaction {
@@ -122,7 +122,7 @@ fun Route.configureHomeRoutes() {
                         flashSale = flashSale,
                         recommend = recommend,
                         coupon = couponNames,
-                        foods = recommend
+                        foods = PageResult(recommend.size.toLong(), recommend)
                     )
                 )
             )

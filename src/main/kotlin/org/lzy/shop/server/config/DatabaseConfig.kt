@@ -91,21 +91,29 @@ object DatabaseConfig {
             Categories.deleteAll()
         }
 
-        if (Categories.selectAll().count() > 0) return
+        // 只要核心表任一为空就全量种种子（避免 Categories 有数据但 Recipes/Goods 没种的情况）
+        val needSeed = listOf(
+            Categories.selectAll().count(),
+            Goods.selectAll().count(),
+            Banners.selectAll().count(),
+            Coupons.selectAll().count(),
+            Recipes.selectAll().count(),
+        ).any { it == 0L }
+        if (!needSeed) return
 
         val now = System.currentTimeMillis().toString()
 
         // ===== 分类 =====
-        data class Cat(val name: String, val parentId: Long, val sort: Int)
+        data class Cat(val name: String, val parentId: Long, val sort: Int, val pic: String)
         val categories = listOf(
-            Cat("休闲零食", 0, 1),
-            Cat("饮料冲调", 0, 2),
-            Cat("粮油调味", 0, 3),
-            Cat("方便速食", 0, 4),
-            Cat("生鲜果蔬", 0, 5),
-            Cat("保健食品", 0, 6),
-            Cat("茗茶酒水", 0, 7),
-            Cat("糖巧礼盒", 0, 8),
+            Cat("休闲零食", 0, 1, "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=500&q=80"),
+            Cat("饮料冲调", 0, 2, "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=500&q=80"),
+            Cat("粮油调味", 0, 3, "https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?auto=format&fit=crop&w=500&q=80"),
+            Cat("方便速食", 0, 4, "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&q=80"),
+            Cat("生鲜果蔬", 0, 5, "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=500&q=80"),
+            Cat("保健食品", 0, 6, "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80"),
+            Cat("茗茶酒水", 0, 7, "https://images.unsplash.com/photo-1563911892437-1feda01e0e90?auto=format&fit=crop&w=500&q=80"),
+            Cat("糖巧礼盒", 0, 8, "https://images.unsplash.com/photo-1549007994-cb92caebd54b?auto=format&fit=crop&w=500&q=80"),
         )
         val catIds = mutableListOf<Long>()
         categories.forEach { c ->
@@ -113,6 +121,7 @@ object DatabaseConfig {
                 it[Categories.name] = c.name
                 it[Categories.parentId] = c.parentId
                 it[Categories.sortNum] = c.sort
+                it[Categories.pic] = c.pic
             } get Categories.id
             catIds.add(id)
         }
@@ -431,7 +440,7 @@ object DatabaseConfig {
                 "甜品", 2, 30, 8),
         )
 
-        val now = System.currentTimeMillis().toString()
+        // now already declared at top of this function
         recipes.forEach { r ->
             val rid = Recipes.insert {
                 it[Recipes.name] = r.name

@@ -1111,7 +1111,7 @@ fun Route.configureAdminRoutes() {
             val updated = RecipeIngredients.update({ RecipeIngredients.id eq req.id }) {
                 req.ingredientName?.let { v -> it[RecipeIngredients.ingredientName] = v }
                 req.quantity?.let { v -> it[RecipeIngredients.quantity] = v }
-                goodsId = req.goodsId  // null 表示清除关联
+                it[RecipeIngredients.goodsId] = req.goodsId  // null 表示清除关联
             }
             if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "食材不存在"))
             else call.respond(okMsg("更新食材"))
