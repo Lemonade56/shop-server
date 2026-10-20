@@ -68,8 +68,23 @@ private val AdminAuthPlugin = createRouteScopedPlugin("AdminAuthPlugin") {
     onCall { appCall ->
         val fullPath = appCall.request.path()
         val path = fullPath.removePrefix("/admin/").removePrefix("/admin")
-        if (path == "login") return@onCall
 
+        // ===== 白名单：以下路径不需要 token =====
+        // 1. login 登录接口
+        if (path == "login") return@onCall
+        // 2. admin 前端页面根路径（空或斜杠）
+        if (path.isBlank() || path == "/") return@onCall
+        // 3. 静态资源文件（css/js/html/图片等）
+        val lower = path.lowercase()
+        if (lower.endsWith(".css") || lower.endsWith(".js") || lower.endsWith(".html") ||
+            lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
+            lower.endsWith(".svg") || lower.endsWith(".ico") || lower.endsWith(".gif") ||
+            lower.endsWith(".map") || lower.endsWith(".woff") || lower.endsWith(".woff2") ||
+            lower.endsWith(".ttf") || lower.endsWith(".eot")) {
+            return@onCall
+        }
+
+        // ===== 非白名单路径需要验证 token =====
         val header = appCall.request.header("Authorization")?.trim()
         val token = header?.removePrefix("Bearer ")?.trim()
         val username = if (!token.isNullOrBlank()) AdminAuth.verifyToken(token) else null
