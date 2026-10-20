@@ -35,13 +35,17 @@ fun Route.configureHomeRoutes() {
             val id: Long, val typeId: Long, val title: String, val mainPic: String,
             val price: Int, val sold: Int = 0
         )
+        @Serializable data class Coupon(
+            val id: Long, val name: String, val discount: Int,
+            val minAmount: Int, val remainCount: Int, val endTime: String
+        )
         @Serializable data class HomeData(
             val banner: List<Banner>,
             val category: List<Category>,
             val categoryAll: List<Category>,
             val flashSale: List<MiniFood>,
             val recommend: List<MiniFood>,
-            val coupon: List<String>,
+            val coupon: List<Coupon>,
             val foods: PageResult<MiniFood>
         )
 
@@ -108,10 +112,26 @@ fun Route.configureHomeRoutes() {
                     )
                 }
 
-            // 优惠券入口：取启用中的前5张
-            val couponNames = Coupons.selectAll().where { Coupons.status eq 1 }
+            // 优惠券：取启用中 + 有剩余 + 未过期的前5张
+            val now = System.currentTimeMillis().toString()
+            val couponList = Coupons.selectAll()
+                .where {
+                    (Coupons.status eq 1) and
+                    (Coupons.remainCount greater 0) and
+                    (Coupons.endTime greater now)
+                }
+                .orderBy(Coupons.discount, SortOrder.DESC)
                 .limit(5)
-                .map { it[Coupons.name] }
+                .map { row ->
+                    Coupon(
+                        id = row[Coupons.id],
+                        name = row[Coupons.name],
+                        discount = row[Coupons.discount],
+                        minAmount = row[Coupons.minAmount],
+                        remainCount = row[Coupons.remainCount],
+                        endTime = row[Coupons.endTime]
+                    )
+                }
 
             call.respond(
                 ok(
@@ -121,7 +141,7 @@ fun Route.configureHomeRoutes() {
                         categoryAll = categoryAllList,
                         flashSale = flashSale,
                         recommend = recommend,
-                        coupon = couponNames,
+                        coupon = couponList,
                         foods = PageResult(recommend.size.toLong(), recommend)
                     )
                 )
