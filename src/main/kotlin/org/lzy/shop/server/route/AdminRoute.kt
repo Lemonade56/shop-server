@@ -27,6 +27,7 @@ import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.GoodsSpecs
 import org.lzy.shop.server.config.Recipes
 import org.lzy.shop.server.config.RecipeIngredients
+import org.lzy.shop.server.config.RecipeSteps
 import java.io.File
 import java.util.Base64
 import java.util.UUID
@@ -967,12 +968,17 @@ fun Route.configureAdminRoutes() {
             val id: Long, val ingredientName: String,
             val quantity: String, val goodsId: Long?
         )
+        @Serializable data class StepItem(
+            val id: Long, val stepNo: Int, val content: String, val pic: String? = null
+        )
         @Serializable data class RecipeDetail(
             val id: Long, val name: String, val pic: String,
             val description: String? = null, val category: String,
             val difficulty: Int, val time: Int,
+            val servings: Int, val author: String? = null,
             val status: Int, val sortNum: Int,
-            val ingredients: List<IngredientItem>
+            val ingredients: List<IngredientItem>,
+            val steps: List<StepItem>
         )
 
         suspendTransaction {
@@ -990,6 +996,17 @@ fun Route.configureAdminRoutes() {
                     )
                 }
 
+            val steps = RecipeSteps.selectAll().where { RecipeSteps.recipeId eq id }
+                .orderBy(RecipeSteps.sortNum, SortOrder.ASC)
+                .map { step ->
+                    StepItem(
+                        id = step[RecipeSteps.id],
+                        stepNo = step[RecipeSteps.stepNo],
+                        content = step[RecipeSteps.content],
+                        pic = step[RecipeSteps.pic]
+                    )
+                }
+
             call.respond(
                 ok(
                     RecipeDetail(
@@ -1000,9 +1017,12 @@ fun Route.configureAdminRoutes() {
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],
                         time = row[Recipes.time],
+                        servings = row[Recipes.servings],
+                        author = row[Recipes.author],
                         status = row[Recipes.status],
                         sortNum = row[Recipes.sortNum],
-                        ingredients = ingredients
+                        ingredients = ingredients,
+                        steps = steps
                     )
                 )
             )
@@ -1013,6 +1033,7 @@ fun Route.configureAdminRoutes() {
         @Serializable data class Req(
             val name: String, val pic: String, val description: String? = null,
             val category: String, val difficulty: Int = 1, val time: Int = 15,
+            val servings: Int = 2, val author: String? = null,
             val status: Int = 1, val sortNum: Int = 0
         )
         val req = runCatching { call.receive<Req>() }.getOrNull()
@@ -1026,6 +1047,8 @@ fun Route.configureAdminRoutes() {
                 it[Recipes.category] = req.category
                 it[Recipes.difficulty] = req.difficulty
                 it[Recipes.time] = req.time
+                it[Recipes.servings] = req.servings
+                it[Recipes.author] = req.author
                 it[Recipes.status] = req.status
                 it[Recipes.sortNum] = req.sortNum
                 it[Recipes.createTime] = System.currentTimeMillis().toString()
@@ -1039,6 +1062,7 @@ fun Route.configureAdminRoutes() {
             val id: Long, val name: String? = null, val pic: String? = null,
             val description: String? = null, val category: String? = null,
             val difficulty: Int? = null, val time: Int? = null,
+            val servings: Int? = null, val author: String? = null,
             val status: Int? = null, val sortNum: Int? = null
         )
         val req = runCatching { call.receive<Req>() }.getOrNull()
@@ -1052,6 +1076,8 @@ fun Route.configureAdminRoutes() {
                 req.category?.let { v -> it[Recipes.category] = v }
                 req.difficulty?.let { v -> it[Recipes.difficulty] = v }
                 req.time?.let { v -> it[Recipes.time] = v }
+                req.servings?.let { v -> it[Recipes.servings] = v }
+                req.author?.let { v -> it[Recipes.author] = v }
                 req.status?.let { v -> it[Recipes.status] = v }
                 req.sortNum?.let { v -> it[Recipes.sortNum] = v }
             }
@@ -1127,6 +1153,61 @@ fun Route.configureAdminRoutes() {
             val deleted = RecipeIngredients.deleteWhere { RecipeIngredients.id eq req.id }
             if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "食材不存在"))
             else call.respond(okMsg("删除食材"))
+        }
+    }
+
+    // ===== 菜谱做法步骤管理 =====
+    post("recipe/step/add") {
+        @Serializable data class Req(
+            val recipeId: Long, val stepNo: Int, val content: String, val pic: String? = null
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val maxSort = RecipeSteps.selectAll().where { RecipeSteps.recipeId eq req.recipeId }
+                .orderBy(RecipeSteps.sortNum, SortOrder.DESC).limit(1)
+                .firstOrNull()?.get(RecipeSteps.sortNum) ?: 0
+
+            RecipeSteps.insert {
+                it[RecipeSteps.recipeId] = req.recipeId
+                it[RecipeSteps.stepNo] = req.stepNo
+                it[RecipeSteps.content] = req.content
+                it[RecipeSteps.pic] = req.pic
+                it[RecipeSteps.sortNum] = maxSort + 1
+            }
+            call.respond(okMsg("新增步骤"))
+        }
+    }
+
+    put("recipe/step/update") {
+        @Serializable data class Req(
+            val id: Long, val stepNo: Int? = null,
+            val content: String? = null, val pic: String? = null
+        )
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@put call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val updated = RecipeSteps.update({ RecipeSteps.id eq req.id }) {
+                req.stepNo?.let { v -> it[RecipeSteps.stepNo] = v }
+                req.content?.let { v -> it[RecipeSteps.content] = v }
+                it[RecipeSteps.pic] = req.pic
+            }
+            if (updated == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "步骤不存在"))
+            else call.respond(okMsg("更新步骤"))
+        }
+    }
+
+    delete("recipe/step/delete") {
+        @Serializable data class Req(val id: Long)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@delete call.respond(fail<String>(ResultCode.BAD_REQUEST, "请求参数格式错误"))
+
+        suspendTransaction {
+            val deleted = RecipeSteps.deleteWhere { RecipeSteps.id eq req.id }
+            if (deleted == 0) call.respond(fail<String>(ResultCode.NOT_FOUND, "步骤不存在"))
+            else call.respond(okMsg("删除步骤"))
         }
     }
 }

@@ -5,9 +5,11 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.utils.io.core.toByteArray
 import kotlinx.serialization.Serializable
 import org.lzy.shop.server.auth.JwtService
 import org.lzy.shop.server.auth.currentUserId
@@ -18,6 +20,14 @@ import org.lzy.shop.server.config.Orders
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import java.awt.*
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.util.*
+import javax.imageio.ImageIO
+
+/** 验证码内存存储：captchaId → 正确答案（线程安全，ConcurrentHashMap 语义由 Kotlin 默认 mutableMapOf + 单 JVM 实例保证） */
+private val captchaStore = LinkedHashMap<String, String>()
 
 /**
  * 用户/认证相关路由 —— 对齐 App 端 UserApi.kt
@@ -108,9 +118,63 @@ fun Route.configureUserRoutes() {
     }
 
     get("user/login/captcha") {
-        // 图形验证码（blockPuzzle 滑块类型）—— 先返回占位
-        @Serializable data class PicSms(val originalImg: String = "", val jigsawImg: String = "", val token: String = "")
-        call.respond(ok(PicSms()))
+        // 生成 4 位随机验证码（去掉易混淆字符 0/O/1/I/l）
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        val rand = java.util.Random()
+        val code = (1..4).map { chars[rand.nextInt(chars.length)] }.joinToString("")
+
+        val width = 120
+        val height = 40
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics()
+
+        // 背景色（浅灰黄）
+        g.color = Color(245, 240, 230)
+        g.fillRect(0, 0, width, height)
+
+        // 画干扰线
+        repeat(5) {
+            g.color = Color(rand.nextInt(40) + 180, rand.nextInt(40) + 180, rand.nextInt(40) + 180)
+            g.drawLine(rand.nextInt(width), rand.nextInt(height),
+                       rand.nextInt(width), rand.nextInt(height))
+        }
+
+        // 画噪点
+        repeat(60) {
+            g.color = Color(rand.nextInt(50) + 150, rand.nextInt(50) + 150, rand.nextInt(50) + 150)
+            g.fillRect(rand.nextInt(width), rand.nextInt(height), 2, 2)
+        }
+
+        // 画验证码字符（随机颜色 + 随机 Y 偏移）
+        val font = Font("Arial", Font.BOLD, 28)
+        g.font = font
+        code.forEachIndexed { i, c ->
+            g.color = Color(rand.nextInt(100) + 20, rand.nextInt(100) + 20, rand.nextInt(100) + 20)
+            val x = 15 + i * 25
+            val y = 28 + rand.nextInt(9) - 4
+            g.drawString(c.toString(), x, y)
+        }
+
+        g.dispose()
+
+        // 编码为 PNG
+        val baos = ByteArrayOutputStream()
+        ImageIO.write(image, "png", baos)
+        val pngBytes = baos.toByteArray()
+
+        // 把正确答案存到内存 Map（key=captchaId, value=code），后续登录时验证
+        val captchaId = "C${System.currentTimeMillis()}"
+        captchaStore[captchaId] = code
+        // 限制 Map 大小，超过 200 条清理最早的
+        if (captchaStore.size > 200) {
+            val oldest = captchaStore.keys.take(captchaStore.size - 200)
+            oldest.forEach { captchaStore.remove(it) }
+        }
+
+        // 返回：captchaId（前端后续登录时带上） + 图片 Base64
+        val base64 = java.util.Base64.getEncoder().encodeToString(pngBytes)
+        @Serializable data class CaptchaResult(val captchaId: String, val image: String)
+        call.respond(ok(CaptchaResult(captchaId = captchaId, image = "data:image/png;base64,$base64")))
     }
 
     post("user/login/smsCode") {
