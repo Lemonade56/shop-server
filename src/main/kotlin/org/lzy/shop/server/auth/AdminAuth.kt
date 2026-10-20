@@ -3,9 +3,15 @@ package org.lzy.shop.server.auth
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.request.header
+import io.ktor.server.request.path
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import org.lzy.shop.server.common.ResultCode
+import org.lzy.shop.server.common.fail
 import org.lzy.shop.server.config.AppConfig
 import java.util.Date
 
@@ -51,12 +57,32 @@ fun ApplicationCall.adminUsername(): String? {
 }
 
 /**
- * Admin 鉴权拦截器 —— 遍历 AdminRoute 下所有非 login 的 handler 包裹检查
+ * Admin 鉴权拦截器 —— 为 admin 路由创建一个 routeScopedPlugin
  *
- * Ktor 3.x 的 routeScopedPlugin API 较复杂，这里用手动拦截方式：
- * 在每个 handler 开头调用 call.adminUsername()，为空直接 return 未登录响应
+ * 逻辑：
+ * 1. login 接口放行（不拦截）
+ * 2. 其他所有请求检查 Authorization header，验证 admin token
+ * 3. 失败返回 401
  */
+private val AdminAuthPlugin = createRouteScopedPlugin("AdminAuthPlugin") {
+    onCall { appCall ->
+        val fullPath = appCall.request.path()
+        val path = fullPath.removePrefix("/admin/").removePrefix("/admin")
+        if (path == "login") return@onCall
+
+        val header = appCall.request.header("Authorization")?.trim()
+        val token = header?.removePrefix("Bearer ")?.trim()
+        val username = if (!token.isNullOrBlank()) AdminAuth.verifyToken(token) else null
+
+        if (username == null) {
+            appCall.respond(
+                HttpStatusCode.Unauthorized,
+                fail<String>(code = ResultCode.UNAUTHORIZED, message = "管理员未登录或token已过期")
+            )
+        }
+    }
+}
+
 fun Route.installAdminAuth() {
-    // 占位函数：实际鉴权在 AdminRoute 各 handler 里手动处理
-    // 这样避免依赖 Ktor 内部的拦截器 API 变化
+    install(AdminAuthPlugin)
 }

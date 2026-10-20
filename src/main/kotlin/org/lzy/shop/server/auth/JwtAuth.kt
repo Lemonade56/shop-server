@@ -27,11 +27,14 @@ fun Application.configureJwt() {
 
     authentication {
         jwt("auth-jwt") {
-            // 自定义 authHeader：从 Authorization header 直接取 token（无 Bearer 前缀）
-            // Ktor 3.x 需要返回 HttpAuthHeader?，用 Single 包装原始 token 值
+            // 自定义 authHeader：从 Authorization header 取 token
+            // 兼容两种格式：Android App 直接传 token，或标准 "Bearer <token>"
             authHeader { call ->
                 call.request.headers[jwtConfig.HEADER_NAME]?.trim()
-                    ?.let { HttpAuthHeader.Single(it,"") }
+                    ?.let { raw ->
+                        val token = raw.removePrefix("Bearer ").removePrefix("bearer ").trim()
+                        HttpAuthHeader.Single("Bearer", token)
+                    }
             }
 
             verifier(
