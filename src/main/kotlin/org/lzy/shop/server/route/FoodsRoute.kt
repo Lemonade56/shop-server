@@ -23,7 +23,8 @@ import org.lzy.shop.server.config.Users
  *   GET  app/page/foodsDetail           食物详情
  *   POST app/foods/spec/list             食物规格列表（真实 DB）
  *   POST app/foods/comment/page          食物评论分页（真实 DB）
- *   POST app/foods/info/page             搜索食物分页
+ *   POST app/foods/home/page             首页食品列表分页（全量上架，按 sortNum）
+ *   POST app/foods/info/page             搜索食物分页（带筛选）
  *   POST app/foods/search/keyword/list   搜索热门关键词（真实 DB）
  */
 fun Route.configureFoodsRoutes() {
@@ -128,6 +129,37 @@ fun Route.configureFoodsRoutes() {
                     )
                 }
 
+            call.respond(ok(PageResult(total, list)))
+        }
+    }
+
+    post("foods/home/page") {
+        // 首页食品列表分页 —— 全量上架商品，按 sortNum 排序，每页 10 条
+        // 和 foods/info/page （带筛选搜索）区分开，这个给首页下拉加载更多用
+        @Serializable data class Req(val page: Int = 1)
+        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
+
+        @Serializable data class MiniFood(
+            val id: Long, val typeId: Long, val title: String,
+            val mainPic: String, val price: Int, val sold: Int = 0
+        )
+
+        suspendTransaction {
+            val query = GoodsTable.selectAll().where { GoodsTable.status eq 1 }
+                .orderBy(GoodsTable.sortNum, SortOrder.ASC)
+            val total = query.count()
+            val list = query
+                .limit(10).offset(((req.page.coerceAtLeast(1) - 1) * 10).toLong())
+                .map { row ->
+                    MiniFood(
+                        id = row[GoodsTable.id],
+                        typeId = row[GoodsTable.typeId],
+                        title = row[GoodsTable.title],
+                        mainPic = row[GoodsTable.mainPic],
+                        price = row[GoodsTable.price],
+                        sold = row[GoodsTable.sold]
+                    )
+                }
             call.respond(ok(PageResult(total, list)))
         }
     }

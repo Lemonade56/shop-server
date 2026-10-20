@@ -45,8 +45,6 @@ fun Route.configureHomeRoutes() {
             val foods: PageResult<MiniFood>
         )
 
-        val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
-
         suspendTransaction {
             // 轮播图：从 Banners 表取启用的
             val banners = Banners.selectAll().where { Banners.status eq 1 }
@@ -115,24 +113,6 @@ fun Route.configureHomeRoutes() {
                 .limit(5)
                 .map { it[Coupons.name] }
 
-            // ===== 首页全量食品分页 =====
-            // foods 字段：从 Goods 表查所有上架商品，按 sortNum 排序，每页 10 条
-            val foodQuery = Goods.selectAll().where { Goods.status eq 1 }
-                .orderBy(Goods.sortNum, SortOrder.ASC)
-            val foodsTotal = foodQuery.count()
-            val foodsList = foodQuery
-                .limit(10).offset(((page - 1) * 10).toLong())
-                .map { row ->
-                    MiniFood(
-                        id = row[Goods.id],
-                        typeId = row[Goods.typeId],
-                        title = row[Goods.title],
-                        mainPic = row[Goods.mainPic],
-                        price = row[Goods.price],
-                        sold = row[Goods.sold]
-                    )
-                }
-
             call.respond(
                 ok(
                     HomeData(
@@ -142,7 +122,7 @@ fun Route.configureHomeRoutes() {
                         flashSale = flashSale,
                         recommend = recommend,
                         coupon = couponNames,
-                        foods = PageResult(foodsTotal, foodsList)
+                        foods = PageResult(recommend.size.toLong(), recommend)
                     )
                 )
             )
