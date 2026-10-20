@@ -9,7 +9,11 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.lzy.shop.server.common.*
+import org.lzy.shop.server.common.Img
+import org.lzy.shop.server.common.PageResult
+import org.lzy.shop.server.common.ResultCode
+import org.lzy.shop.server.common.fail
+import org.lzy.shop.server.common.ok
 import org.lzy.shop.server.config.Comments
 import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.GoodsSpecs
@@ -50,6 +54,7 @@ fun Route.configureFoodsRoutes() {
             val row = GoodsTable.selectAll().where { GoodsTable.id eq foodsId }.firstOrNull()
                 ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "食物不存在"))
 
+            // 解析JSON数组并把每个路径拼完整URL
             fun parseJsonArray(raw: String?): List<String> {
                 if (raw.isNullOrBlank()) return emptyList()
                 return runCatching {
@@ -57,6 +62,7 @@ fun Route.configureFoodsRoutes() {
                         .split(",")
                         .map { it.trim().removeSurrounding("\"") }
                         .filter { it.isNotBlank() }
+                        .map { Img.full(it) ?: it }
                 }.getOrDefault(emptyList())
             }
 
@@ -65,7 +71,7 @@ fun Route.configureFoodsRoutes() {
                 typeId = row[GoodsTable.typeId],
                 title = row[GoodsTable.title],
                 subTitle = row[GoodsTable.subTitle],
-                mainPic = row[GoodsTable.mainPic],
+                mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
                 pics = parseJsonArray(row[GoodsTable.pics]),
                 price = row[GoodsTable.price],
                 sold = row[GoodsTable.sold],
@@ -123,7 +129,7 @@ fun Route.configureFoodsRoutes() {
                         id = row[Comments.id],
                         userId = row[Users.id],
                         nickname = (row[Users.nickname] ?: ""),
-                        avatarUrl = (row[Users.avatarUrl] ?: ""),
+                        avatarUrl = Img.full((row[Users.avatarUrl] ?: "")) ?: "",
                         content = row[Comments.content],
                         createTime = row[Comments.createTime]
                     )
@@ -155,7 +161,7 @@ fun Route.configureFoodsRoutes() {
                         id = row[GoodsTable.id],
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
-                        mainPic = row[GoodsTable.mainPic],
+                        mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
                         price = row[GoodsTable.price],
                         sold = row[GoodsTable.sold]
                     )
@@ -211,7 +217,7 @@ fun Route.configureFoodsRoutes() {
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
                         subTitle = row[GoodsTable.subTitle],
-                        mainPic = row[GoodsTable.mainPic],
+                        mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
                         price = row[GoodsTable.price],
                         sold = row[GoodsTable.sold]
                     )

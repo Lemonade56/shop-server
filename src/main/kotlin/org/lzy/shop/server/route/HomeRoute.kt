@@ -55,7 +55,7 @@ fun Route.configureHomeRoutes() {
                 .map { row ->
                     Banner(
                         id = row[Banners.id],
-                        pic = row[Banners.pic],
+                        pic = Img.full(row[Banners.pic]) ?: "",
                         url = row[Banners.url] ?: "",
                         title = row[Banners.title] ?: ""
                     )
@@ -63,10 +63,10 @@ fun Route.configureHomeRoutes() {
 
             // 2. 用餐场景分类 —— 4个固定入口（与商品分类Categories表无关）
             val mealScenes = listOf(
-                MealScene(1, "早餐", "/app/images/meal-breakfast.jpg"),
-                MealScene(2, "午餐", "/app/images/meal-lunch.jpg"),
-                MealScene(3, "晚餐", "/app/images/meal-dinner.jpg"),
-                MealScene(4, "零食补给", "/app/images/meal-snack.jpg"),
+                MealScene(1, "早餐", Img.full("/app/images/meal-breakfast.jpg")!!),
+                MealScene(2, "午餐", Img.full("/app/images/meal-lunch.jpg")!!),
+                MealScene(3, "晚餐", Img.full("/app/images/meal-dinner.jpg")!!),
+                MealScene(4, "零食补给", Img.full("/app/images/meal-snack.jpg")!!),
             )
 
             // 3. 本周热门菜谱 —— 取上架菜谱前 3 张
@@ -77,7 +77,7 @@ fun Route.configureHomeRoutes() {
                     HotRecipe(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = row[Recipes.pic],
+                        pic = Img.full(row[Recipes.pic]) ?: "",
                         time = row[Recipes.time],
                         difficulty = row[Recipes.difficulty]
                     )
@@ -92,7 +92,7 @@ fun Route.configureHomeRoutes() {
                         id = row[Goods.id],
                         typeId = row[Goods.typeId],
                         title = row[Goods.title],
-                        mainPic = row[Goods.mainPic],
+                        mainPic = Img.full(row[Goods.mainPic]) ?: "",
                         price = row[Goods.price]
                     )
                 }
@@ -126,7 +126,7 @@ fun Route.configureHomeRoutes() {
                         id = row[org.lzy.shop.server.config.Categories.id],
                         name = row[org.lzy.shop.server.config.Categories.name],
                         parentId = row[org.lzy.shop.server.config.Categories.parentId],
-                        pic = row[org.lzy.shop.server.config.Categories.pic] ?: "",
+                        pic = Img.full(row[org.lzy.shop.server.config.Categories.pic] ?: "") ?: "",
                         sortNum = row[org.lzy.shop.server.config.Categories.sortNum]
                     )
                 }

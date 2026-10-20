@@ -60,7 +60,7 @@ fun Route.configureCartRoutes() {
                             quantity = row[Cart.quantity],
                             isSelected = row[Cart.isSelected],
                             title = row[GoodsTable.title],
-                            mainPic = row[GoodsTable.mainPic],
+                            mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
                             price = row[GoodsTable.price]
                         )
                     }

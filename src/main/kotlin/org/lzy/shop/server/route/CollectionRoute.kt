@@ -48,7 +48,7 @@ fun Route.configureCollectionRoutes() {
                             id = row[Collections.id],
                             goodsId = row[GoodsTable.id],
                             title = row[GoodsTable.title],
-                            mainPic = row[GoodsTable.mainPic],
+                            mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
                             price = row[GoodsTable.price],
                             collectTime = row[Collections.createTime]
                         )
@@ -144,7 +144,7 @@ fun Route.configureCollectionRoutes() {
                             id = row[RecipeCollections.id],
                             recipeId = row[Recipes.id],
                             name = row[Recipes.name],
-                            pic = row[Recipes.pic],
+                            pic = Img.full(row[Recipes.pic]) ?: "",
                             time = row[Recipes.time],
                             difficulty = row[Recipes.difficulty],
                             collectTime = row[RecipeCollections.createTime]

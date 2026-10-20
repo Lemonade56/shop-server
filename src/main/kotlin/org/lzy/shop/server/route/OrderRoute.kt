@@ -158,7 +158,7 @@ fun Route.configureOrderRoutes() {
                         OrderItemData(
                             goodsId = sg.goodsId,
                             goodsTitle = g[GoodsTable.title],
-                            goodsMainPic = g[GoodsTable.mainPic],
+                            goodsMainPic = Img.full(g[GoodsTable.mainPic]) ?: "",
                             specInfo = sg.specId?.toString(),
                             price = dbPrice,
                             quantity = sg.quantity

@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.lzy.shop.server.common.Img
 import org.lzy.shop.server.common.PageResult
 import org.lzy.shop.server.common.ResultCode
 import org.lzy.shop.server.common.fail
@@ -75,7 +76,7 @@ fun Route.configureRecipesRoutes() {
                     RecipeItem(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = row[Recipes.pic],
+                        pic = Img.full(row[Recipes.pic]) ?: "",
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],
                         time = row[Recipes.time],
@@ -140,7 +141,7 @@ fun Route.configureRecipesRoutes() {
                     Step(
                         stepNo = step[RecipeSteps.stepNo],
                         content = step[RecipeSteps.content],
-                        pic = step[RecipeSteps.pic]
+                        pic = Img.full(step[RecipeSteps.pic])
                     )
                 }
 
@@ -149,7 +150,7 @@ fun Route.configureRecipesRoutes() {
                     RecipeDetail(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = row[Recipes.pic],
+                        pic = Img.full(row[Recipes.pic]) ?: "",
                         description = row[Recipes.description],
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],
