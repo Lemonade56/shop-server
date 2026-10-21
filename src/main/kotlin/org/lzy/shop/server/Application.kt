@@ -67,6 +67,9 @@ import org.lzy.shop.server.route.*
  *   }
  */
 fun Application.module() {
+    // 容器环境 AWT headless 模式：BufferedImage/ImageIO 生成验证码需要
+    System.setProperty("java.awt.headless", "true")
+
     // 1. 数据库
     DatabaseConfig.connect()
 

@@ -118,6 +118,11 @@ fun Route.configureUserRoutes() {
     }
 
     get("user/login/captcha") {
+        // 兼容 App 端传入的 type/width/height 参数（均忽略，服务端统一生成文本图形验证码）
+        val type = call.request.queryParameters["type"]   // 如 blockPuzzle，忽略
+        val widthParam = call.request.queryParameters["width"]?.toIntOrNull()  // 忽略
+        val heightParam = call.request.queryParameters["height"]?.toIntOrNull() // 忽略
+
         // 生成 4 位随机验证码（去掉易混淆字符 0/O/1/I/l）
         val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         val rand = java.util.Random()

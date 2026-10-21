@@ -93,6 +93,47 @@ object DatabaseConfig {
             Categories.deleteAll()
         }
 
+        // 图片路径迁移：把旧的 /app/images/xxx.jpg 本地路径全部换成 picsum 直链
+        // 避免重新种种子（保留已有业务数据）
+        val picMap = mapOf(
+            "/app/images/cat-snack.jpg" to "https://picsum.photos/seed/cat-snack/600/600",
+            "/app/images/cat-drink.jpg" to "https://picsum.photos/seed/cat-drink/600/600",
+            "/app/images/cat-oil.jpg" to "https://picsum.photos/seed/cat-oil/600/600",
+            "/app/images/cat-instant.jpg" to "https://picsum.photos/seed/cat-instant/600/600",
+            "/app/images/cat-fresh.jpg" to "https://picsum.photos/seed/cat-fresh/600/600",
+            "/app/images/cat-health.jpg" to "https://picsum.photos/seed/cat-health/600/600",
+            "/app/images/cat-tea.jpg" to "https://picsum.photos/seed/cat-tea/600/600",
+            "/app/images/cat-choco.jpg" to "https://picsum.photos/seed/cat-choco/600/600",
+            "/app/images/goods-1.jpg" to "https://picsum.photos/seed/goods-1/600/600",
+            "/app/images/goods-2.jpg" to "https://picsum.photos/seed/goods-2/600/600",
+            "/app/images/goods-3.jpg" to "https://picsum.photos/seed/goods-3/600/600",
+            "/app/images/goods-4.jpg" to "https://picsum.photos/seed/goods-4/600/600",
+            "/app/images/goods-5.jpg" to "https://picsum.photos/seed/goods-5/600/600",
+            "/app/images/goods-6.jpg" to "https://picsum.photos/seed/goods-6/600/600",
+            "/app/images/goods-7.jpg" to "https://picsum.photos/seed/goods-7/600/600",
+            "/app/images/goods-8.jpg" to "https://picsum.photos/seed/goods-8/600/600",
+            "/app/images/goods-9.jpg" to "https://picsum.photos/seed/goods-9/600/600",
+            "/app/images/goods-10.jpg" to "https://picsum.photos/seed/goods-10/600/600",
+            "/app/images/banner-1.jpg" to "https://picsum.photos/seed/banner-1/1200/400",
+            "/app/images/banner-2.jpg" to "https://picsum.photos/seed/banner-2/1200/400",
+            "/app/images/banner-3.jpg" to "https://picsum.photos/seed/banner-3/1200/400",
+            "/app/images/recipe-1.jpg" to "https://picsum.photos/seed/recipe-1/800/600",
+            "/app/images/recipe-2.jpg" to "https://picsum.photos/seed/recipe-2/800/600",
+            "/app/images/recipe-3.jpg" to "https://picsum.photos/seed/recipe-3/800/600",
+            "/app/images/recipe-4.jpg" to "https://picsum.photos/seed/recipe-4/800/600",
+            "/app/images/recipe-5.jpg" to "https://picsum.photos/seed/recipe-5/800/600",
+            "/app/images/recipe-6.jpg" to "https://picsum.photos/seed/recipe-6/800/600",
+            "/app/images/recipe-7.jpg" to "https://picsum.photos/seed/recipe-7/800/600",
+            "/app/images/recipe-8.jpg" to "https://picsum.photos/seed/recipe-8/800/600",
+        )
+        // Categories.pic
+        picMap.forEach { (old, newUrl) ->
+            Categories.update({ Categories.pic eq old }) { it[Categories.pic] = newUrl }
+            Goods.update({ Goods.mainPic eq old }) { it[Goods.mainPic] = newUrl }
+            Banners.update({ Banners.pic eq old }) { it[Banners.pic] = newUrl }
+            Recipes.update({ Recipes.pic eq old }) { it[Recipes.pic] = newUrl }
+        }
+
         // 只要核心表任一为空就全量种种子（避免 Categories 有数据但 Recipes/Goods 没种的情况）
         val needSeed = listOf(
             Categories.selectAll().count(),
@@ -108,14 +149,14 @@ object DatabaseConfig {
         // ===== 分类（使用项目内置本地图片，路径走 /app/images/xxx.jpg） =====
         data class Cat(val name: String, val parentId: Long, val sort: Int, val pic: String)
         val categories = listOf(
-            Cat("休闲零食", 0, 1, "/app/images/cat-snack.jpg"),
-            Cat("饮料冲调", 0, 2, "/app/images/cat-drink.jpg"),
-            Cat("粮油调味", 0, 3, "/app/images/cat-oil.jpg"),
-            Cat("方便速食", 0, 4, "/app/images/cat-instant.jpg"),
-            Cat("生鲜果蔬", 0, 5, "/app/images/cat-fresh.jpg"),
-            Cat("保健食品", 0, 6, "/app/images/cat-health.jpg"),
-            Cat("茗茶酒水", 0, 7, "/app/images/cat-tea.jpg"),
-            Cat("糖巧礼盒", 0, 8, "/app/images/cat-choco.jpg"),
+            Cat("休闲零食", 0, 1, "https://picsum.photos/seed/cat-snack/600/600"),
+            Cat("饮料冲调", 0, 2, "https://picsum.photos/seed/cat-drink/600/600"),
+            Cat("粮油调味", 0, 3, "https://picsum.photos/seed/cat-oil/600/600"),
+            Cat("方便速食", 0, 4, "https://picsum.photos/seed/cat-instant/600/600"),
+            Cat("生鲜果蔬", 0, 5, "https://picsum.photos/seed/cat-fresh/600/600"),
+            Cat("保健食品", 0, 6, "https://picsum.photos/seed/cat-health/600/600"),
+            Cat("茗茶酒水", 0, 7, "https://picsum.photos/seed/cat-tea/600/600"),
+            Cat("糖巧礼盒", 0, 8, "https://picsum.photos/seed/cat-choco/600/600"),
         )
         val catIds = mutableListOf<Long>()
         categories.forEach { c ->
@@ -138,16 +179,16 @@ object DatabaseConfig {
 
         // ===== 商品图片：循环使用本地 goods-1.jpg ~ goods-10.jpg =====
         val allGoodsPics = listOf(
-            "/app/images/goods-1.jpg",
-            "/app/images/goods-2.jpg",
-            "/app/images/goods-3.jpg",
-            "/app/images/goods-4.jpg",
-            "/app/images/goods-5.jpg",
-            "/app/images/goods-6.jpg",
-            "/app/images/goods-7.jpg",
-            "/app/images/goods-8.jpg",
-            "/app/images/goods-9.jpg",
-            "/app/images/goods-10.jpg",
+            "https://picsum.photos/seed/goods-1/600/600",
+            "https://picsum.photos/seed/goods-2/600/600",
+            "https://picsum.photos/seed/goods-3/600/600",
+            "https://picsum.photos/seed/goods-4/600/600",
+            "https://picsum.photos/seed/goods-5/600/600",
+            "https://picsum.photos/seed/goods-6/600/600",
+            "https://picsum.photos/seed/goods-7/600/600",
+            "https://picsum.photos/seed/goods-8/600/600",
+            "https://picsum.photos/seed/goods-9/600/600",
+            "https://picsum.photos/seed/goods-10/600/600",
         )
         // 按索引取图：goodsPics[i] = allGoodsPics[i % 10]
         fun goodsPic(i: Int) = allGoodsPics[i % allGoodsPics.size]
@@ -165,9 +206,9 @@ object DatabaseConfig {
 
         // ===== 轮播图（使用本地 banner-1~3.jpg） =====
         val banners = listOf(
-            Triple("/app/images/banner-1.jpg", "乐事薯片 狂欢促销 限时满减", 1),
-            Triple("/app/images/banner-2.jpg", "农夫山泉 囤货季 全屋用水", 2),
-            Triple("/app/images/banner-3.jpg", "三只松鼠 每日坚果 营养早餐", 3),
+            Triple("https://picsum.photos/seed/banner-1/1200/400", "乐事薯片 狂欢促销 限时满减", 1),
+            Triple("https://picsum.photos/seed/banner-2/1200/400", "农夫山泉 囤货季 全屋用水", 2),
+            Triple("https://picsum.photos/seed/banner-3/1200/400", "三只松鼠 每日坚果 营养早餐", 3),
         )
         banners.forEach { (pic, title, sort) ->
             Banners.insert {
@@ -384,10 +425,10 @@ object DatabaseConfig {
         // ===== 菜谱种子数据 =====
         // 图片循环使用 recipe-1.jpg ~ recipe-8.jpg
         val allRecipePics = listOf(
-            "/app/images/recipe-1.jpg", "/app/images/recipe-2.jpg",
-            "/app/images/recipe-3.jpg", "/app/images/recipe-4.jpg",
-            "/app/images/recipe-5.jpg", "/app/images/recipe-6.jpg",
-            "/app/images/recipe-7.jpg", "/app/images/recipe-8.jpg",
+            "https://picsum.photos/seed/recipe-1/800/600", "https://picsum.photos/seed/recipe-2/800/600",
+            "https://picsum.photos/seed/recipe-3/800/600", "https://picsum.photos/seed/recipe-4/800/600",
+            "https://picsum.photos/seed/recipe-5/800/600", "https://picsum.photos/seed/recipe-6/800/600",
+            "https://picsum.photos/seed/recipe-7/800/600", "https://picsum.photos/seed/recipe-8/800/600",
         )
 
         // 菜谱主数据：覆盖 早餐/家常菜/减脂餐/儿童餐/甜品饮品/主食/快手菜/汤品
