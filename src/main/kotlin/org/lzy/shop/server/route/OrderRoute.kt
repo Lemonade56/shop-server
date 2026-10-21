@@ -1,4 +1,4 @@
-package org.lzy.shop.server.route
+﻿package org.lzy.shop.server.route
 
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
@@ -158,7 +158,7 @@ fun Route.configureOrderRoutes() {
                         OrderItemData(
                             goodsId = sg.goodsId,
                             goodsTitle = g[GoodsTable.title],
-                            goodsMainPic = Img.full(g[GoodsTable.mainPic]) ?: "",
+                            goodsMainPic = Img.full(call, g[GoodsTable.mainPic]) ?: "",
                             specInfo = sg.specId?.toString(),
                             price = dbPrice,
                             quantity = sg.quantity

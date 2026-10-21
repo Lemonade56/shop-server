@@ -1,4 +1,4 @@
-package org.lzy.shop.server.route
+﻿package org.lzy.shop.server.route
 
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
@@ -48,7 +48,7 @@ fun Route.configureCollectionRoutes() {
                             id = row[Collections.id],
                             goodsId = row[GoodsTable.id],
                             title = row[GoodsTable.title],
-                            mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                            mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                             price = row[GoodsTable.price],
                             collectTime = row[Collections.createTime]
                         )
@@ -144,7 +144,7 @@ fun Route.configureCollectionRoutes() {
                             id = row[RecipeCollections.id],
                             recipeId = row[Recipes.id],
                             name = row[Recipes.name],
-                            pic = Img.full(row[Recipes.pic]) ?: "",
+                            pic = Img.full(call, row[Recipes.pic]) ?: "",
                             time = row[Recipes.time],
                             difficulty = row[Recipes.difficulty],
                             collectTime = row[RecipeCollections.createTime]

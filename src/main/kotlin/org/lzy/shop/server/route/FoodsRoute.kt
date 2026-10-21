@@ -1,4 +1,4 @@
-package org.lzy.shop.server.route
+﻿package org.lzy.shop.server.route
 
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -62,7 +62,7 @@ fun Route.configureFoodsRoutes() {
                         .split(",")
                         .map { it.trim().removeSurrounding("\"") }
                         .filter { it.isNotBlank() }
-                        .map { Img.full(it) ?: it }
+                        .map { Img.full(call, it) ?: it }
                 }.getOrDefault(emptyList())
             }
 
@@ -71,7 +71,7 @@ fun Route.configureFoodsRoutes() {
                 typeId = row[GoodsTable.typeId],
                 title = row[GoodsTable.title],
                 subTitle = row[GoodsTable.subTitle],
-                mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                 pics = parseJsonArray(row[GoodsTable.pics]),
                 price = row[GoodsTable.price],
                 sold = row[GoodsTable.sold],
@@ -129,7 +129,7 @@ fun Route.configureFoodsRoutes() {
                         id = row[Comments.id],
                         userId = row[Users.id],
                         nickname = (row[Users.nickname] ?: ""),
-                        avatarUrl = Img.full((row[Users.avatarUrl] ?: "")) ?: "",
+                        avatarUrl = Img.full(call, (row[Users.avatarUrl] ?: "")) ?: "",
                         content = row[Comments.content],
                         createTime = row[Comments.createTime]
                     )
@@ -161,7 +161,7 @@ fun Route.configureFoodsRoutes() {
                         id = row[GoodsTable.id],
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
-                        mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                        mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                         price = row[GoodsTable.price],
                         sold = row[GoodsTable.sold]
                     )
@@ -217,7 +217,7 @@ fun Route.configureFoodsRoutes() {
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
                         subTitle = row[GoodsTable.subTitle],
-                        mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                        mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                         price = row[GoodsTable.price],
                         sold = row[GoodsTable.sold]
                     )

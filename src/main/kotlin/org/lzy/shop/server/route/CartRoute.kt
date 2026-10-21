@@ -1,4 +1,4 @@
-package org.lzy.shop.server.route
+﻿package org.lzy.shop.server.route
 
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
@@ -60,7 +60,7 @@ fun Route.configureCartRoutes() {
                             quantity = row[Cart.quantity],
                             isSelected = row[Cart.isSelected],
                             title = row[GoodsTable.title],
-                            mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                            mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                             price = row[GoodsTable.price]
                         )
                     }

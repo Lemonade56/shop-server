@@ -1,4 +1,4 @@
-package org.lzy.shop.server.route
+﻿package org.lzy.shop.server.route
 
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -76,7 +76,7 @@ fun Route.configureRecipesRoutes() {
                     RecipeItem(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = Img.full(row[Recipes.pic]) ?: "",
+                        pic = Img.full(call, row[Recipes.pic]) ?: "",
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],
                         time = row[Recipes.time],
@@ -141,7 +141,7 @@ fun Route.configureRecipesRoutes() {
                     Step(
                         stepNo = step[RecipeSteps.stepNo],
                         content = step[RecipeSteps.content],
-                        pic = Img.full(step[RecipeSteps.pic])
+                        pic = Img.full(call, step[RecipeSteps.pic])
                     )
                 }
 
@@ -150,7 +150,7 @@ fun Route.configureRecipesRoutes() {
                     RecipeDetail(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = Img.full(row[Recipes.pic]) ?: "",
+                        pic = Img.full(call, row[Recipes.pic]) ?: "",
                         description = row[Recipes.description],
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],

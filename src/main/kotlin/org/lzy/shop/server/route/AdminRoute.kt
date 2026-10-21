@@ -1,4 +1,4 @@
-package org.lzy.shop.server.route
+﻿package org.lzy.shop.server.route
 
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
@@ -140,7 +140,7 @@ fun Route.configureAdminRoutes() {
                     TopFood(
                         id = row[GoodsTable.id],
                         title = row[GoodsTable.title],
-                        pic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                        pic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                         sold = row[GoodsTable.sold].toLong()
                     )
                 }
@@ -196,7 +196,7 @@ fun Route.configureAdminRoutes() {
                         id = row[GoodsTable.id],
                         typeId = row[GoodsTable.typeId],
                         title = row[GoodsTable.title],
-                        mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                        mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                         price = row[GoodsTable.price],
                         sold = row[GoodsTable.sold],
                         status = row[GoodsTable.status],
@@ -229,7 +229,7 @@ fun Route.configureAdminRoutes() {
                 typeId = row[GoodsTable.typeId],
                 title = row[GoodsTable.title],
                 subTitle = row[GoodsTable.subTitle],
-                mainPic = Img.full(row[GoodsTable.mainPic]) ?: "",
+                mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
                 price = row[GoodsTable.price],
                 sold = row[GoodsTable.sold],
                 status = row[GoodsTable.status],
@@ -695,7 +695,7 @@ fun Route.configureAdminRoutes() {
                         id = row[Categories.id],
                         name = row[Categories.name],
                         parentId = row[Categories.parentId],
-                        pic = Img.full(row[Categories.pic] ?: "") ?: "",
+                        pic = Img.full(call, row[Categories.pic] ?: "") ?: "",
                         sortNum = row[Categories.sortNum]
                     )
                 }
@@ -767,7 +767,7 @@ fun Route.configureAdminRoutes() {
                 .map { row ->
                     BannerItem(
                         id = row[Banners.id],
-                        pic = Img.full(row[Banners.pic]) ?: "",
+                        pic = Img.full(call, row[Banners.pic]) ?: "",
                         url = (row[Banners.url] ?: ""),
                         title = (row[Banners.title] ?: ""),
                         sortNum = row[Banners.sortNum],
@@ -947,7 +947,7 @@ fun Route.configureAdminRoutes() {
                     RecipeItem(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = Img.full(row[Recipes.pic]) ?: "",
+                        pic = Img.full(call, row[Recipes.pic]) ?: "",
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],
                         time = row[Recipes.time],
@@ -1003,7 +1003,7 @@ fun Route.configureAdminRoutes() {
                         id = step[RecipeSteps.id],
                         stepNo = step[RecipeSteps.stepNo],
                         content = step[RecipeSteps.content],
-                        pic = Img.full(step[RecipeSteps.pic])
+                        pic = Img.full(call, step[RecipeSteps.pic])
                     )
                 }
 
@@ -1012,7 +1012,7 @@ fun Route.configureAdminRoutes() {
                     RecipeDetail(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
-                        pic = Img.full(row[Recipes.pic]) ?: "",
+                        pic = Img.full(call, row[Recipes.pic]) ?: "",
                         description = row[Recipes.description],
                         category = row[Recipes.category],
                         difficulty = row[Recipes.difficulty],
