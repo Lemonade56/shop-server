@@ -17,7 +17,12 @@ import org.lzy.shop.server.auth.currentUserIdOrNull
 import org.lzy.shop.server.common.*
 import org.lzy.shop.server.config.Users
 import org.lzy.shop.server.config.Orders
+import org.lzy.shop.server.config.RecipeCollections
+import org.lzy.shop.server.config.Collections
+import org.lzy.shop.server.config.UserCoupons
+import org.lzy.shop.server.config.Addresses
 import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.awt.*
@@ -255,6 +260,83 @@ fun Route.configureUserRoutes() {
                     it[Users.updateTime] = System.currentTimeMillis().toString()
                 }
                 call.respond(okMsg("修改密码"))
+            }
+        }
+
+        // ===== 我的 Tab 聚合（扩展版：对齐全局顶部 + 各统计）=====
+        get("page/mine") {
+            val userId = call.currentUserIdOrNull()
+                ?: return@get call.respond(fail<String>(code = ResultCode.UNAUTHORIZED, message = "未登录"))
+
+            @Serializable data class UserInfoMini(
+                val id: Long, val nickname: String, val avatarUrl: String,
+                val level: String, val registerDays: Int,
+                val completedRecipes: Int, val recipeFavorites: Int, val viewCount: Int
+            )
+            @Serializable data class MineStats(
+                val completedOrders: Long,
+                val recipeFavorites: Long,
+                val goodsFavorites: Long,
+                val couponCount: Long,
+                val addressCount: Long
+            )
+            @Serializable data class OrderStatusCounts(
+                val unpaid: Long, val unshipped: Long,
+                val unreceived: Long, val uncomment: Long
+            )
+            @Serializable data class MinePageData(
+                val userInfo: UserInfoMini,
+                val stats: MineStats,
+                val orderStatusCounts: OrderStatusCounts
+            )
+
+            suspendTransaction {
+                val user = Users.selectAll().where { Users.id eq userId }.firstOrNull()
+                    ?: return@suspendTransaction call.respond(fail<String>(message = "用户不存在"))
+
+                val createTs = user[Users.createTime].toLongOrNull() ?: System.currentTimeMillis()
+                val registerDays = ((System.currentTimeMillis() - createTs) / 86400000L).toInt().coerceAtLeast(1)
+
+                val recipeFav = RecipeCollections.selectAll().where { RecipeCollections.userId eq userId }.count()
+                val goodsFav = Collections.selectAll().where { Collections.userId eq userId }.count()
+                val addressCount = Addresses.selectAll().where { Addresses.userId eq userId }.count()
+                val couponCount = UserCoupons.selectAll().where {
+                    (UserCoupons.userId eq userId) and (UserCoupons.status eq 0)
+                }.count()
+
+                val unpaid = Orders.selectAll().where { (Orders.userId eq userId) and (Orders.status eq 0) }.count()
+                val unshipped = Orders.selectAll().where { (Orders.userId eq userId) and (Orders.status eq 1) }.count()
+                val unreceived = Orders.selectAll().where { (Orders.userId eq userId) and (Orders.status eq 2) }.count()
+                val uncomment = 0L  // 简化：暂不分评论状态
+
+                val completedOrders = Orders.selectAll().where {
+                    (Orders.userId eq userId) and (Orders.status inList listOf(3, 4))
+                }.count()
+
+                call.respond(
+                    ok(
+                        MinePageData(
+                            userInfo = UserInfoMini(
+                                id = user[Users.id],
+                                nickname = user[Users.nickname] ?: "用户${user[Users.phone].takeLast(4)}",
+                                avatarUrl = user[Users.avatarUrl] ?: "",
+                                level = "厨房探索者",
+                                registerDays = registerDays,
+                                completedRecipes = 0,
+                                recipeFavorites = recipeFav.toInt(),
+                                viewCount = (recipeFav * 2 + 17).toInt()  // 浏览足迹伪数据
+                            ),
+                            stats = MineStats(
+                                completedOrders = completedOrders,
+                                recipeFavorites = recipeFav,
+                                goodsFavorites = goodsFav,
+                                couponCount = couponCount,
+                                addressCount = addressCount
+                            ),
+                            orderStatusCounts = OrderStatusCounts(unpaid, unshipped, unreceived, uncomment)
+                        )
+                    )
+                )
             }
         }
 
