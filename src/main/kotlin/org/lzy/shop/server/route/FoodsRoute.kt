@@ -120,20 +120,29 @@ fun Route.configureFoodsRoutes() {
         suspendTransaction {
             val total = Comments.selectAll().where { Comments.goodsId eq req.foodsId }.count()
 
-            // 联查评论 + 用户昵称/头像
-            val list = Comments.innerJoin(Users).selectAll().where { Comments.goodsId eq req.foodsId }
+            // 先查评论，再批量查用户，Kotlin 里合并（绕开 Exposed innerJoin 限制）
+            val commentRows = Comments.selectAll().where { Comments.goodsId eq req.foodsId }
                 .orderBy(Comments.createTime, SortOrder.DESC)
                 .limit(10).offset(((req.page - 1) * 10).toLong())
-                .map { row ->
-                    CommentItem(
-                        id = row[Comments.id],
-                        userId = row[Users.id],
-                        nickname = (row[Users.nickname] ?: ""),
-                        avatarUrl = Img.full(call, (row[Users.avatarUrl] ?: "")) ?: "",
-                        content = row[Comments.content],
-                        createTime = row[Comments.createTime]
-                    )
-                }
+                .toList()
+
+            val userIds = commentRows.map { it[Comments.userId] }.distinct()
+            val userMap = if (userIds.isNotEmpty()) {
+                Users.selectAll().where { Users.id inList userIds }
+                    .associate { it[Users.id] to it }
+            } else emptyMap()
+
+            val list = commentRows.map { row ->
+                val u = userMap[row[Comments.userId]]
+                CommentItem(
+                    id = row[Comments.id],
+                    userId = row[Comments.userId],
+                    nickname = (u?.get(Users.nickname) ?: ""),
+                    avatarUrl = Img.full(call, (u?.get(Users.avatarUrl) ?: "")) ?: "",
+                    content = row[Comments.content],
+                    createTime = row[Comments.createTime]
+                )
+            }
 
             call.respond(ok(PageResult(total, list)))
         }

@@ -9,8 +9,8 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.lzy.shop.server.auth.currentUserId
 import org.lzy.shop.server.common.*
+import org.lzy.shop.server.auth.currentUserId
 import org.lzy.shop.server.config.Collections
 import org.lzy.shop.server.config.Goods as GoodsTable
 import org.lzy.shop.server.config.RecipeCollections
@@ -39,20 +39,29 @@ fun Route.configureCollectionRoutes() {
             suspendTransaction {
                 val total = Collections.selectAll().where { Collections.userId eq userId }.count()
 
-                val list = Collections.innerJoin(GoodsTable)
-                    .selectAll().where { Collections.userId eq userId }
+                // 先查收藏列表，再批量查商品详情，在 Kotlin 里合并（绕开 Exposed innerJoin 限制）
+                val collectRows = Collections.selectAll().where { Collections.userId eq userId }
                     .orderBy(Collections.createTime, SortOrder.DESC)
                     .limit(10).offset(((req.page - 1) * 10).toLong())
-                    .map { row ->
-                        CollectItem(
-                            id = row[Collections.id],
-                            goodsId = row[GoodsTable.id],
-                            title = row[GoodsTable.title],
-                            mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
-                            price = row[GoodsTable.price],
-                            collectTime = row[Collections.createTime]
-                        )
-                    }
+                    .toList()
+
+                val goodsIds = collectRows.map { it[Collections.goodsId] }.distinct()
+                val goodsMap = if (goodsIds.isNotEmpty()) {
+                    GoodsTable.selectAll().where { GoodsTable.id inList goodsIds }
+                        .associate { it[GoodsTable.id] to it }
+                } else emptyMap()
+
+                val list = collectRows.map { row ->
+                    val g = goodsMap[row[Collections.goodsId]]
+                    CollectItem(
+                        id = row[Collections.id],
+                        goodsId = row[Collections.goodsId],
+                        title = g?.get(GoodsTable.title) ?: "",
+                        mainPic = Img.full(call, g?.get(GoodsTable.mainPic) ?: "") ?: "",
+                        price = g?.get(GoodsTable.price) ?: 0,
+                        collectTime = row[Collections.createTime]
+                    )
+                }
 
                 call.respond(ok(PageResult(total, list)))
             }
@@ -135,21 +144,29 @@ fun Route.configureCollectionRoutes() {
             suspendTransaction {
                 val total = RecipeCollections.selectAll().where { RecipeCollections.userId eq userId }.count()
 
-                val list = RecipeCollections.innerJoin(Recipes)
-                    .selectAll().where { RecipeCollections.userId eq userId }
+                val collectRows = RecipeCollections.selectAll().where { RecipeCollections.userId eq userId }
                     .orderBy(RecipeCollections.createTime, SortOrder.DESC)
                     .limit(10).offset(((req.page - 1) * 10).toLong())
-                    .map { row ->
-                        RecipeCollectItem(
-                            id = row[RecipeCollections.id],
-                            recipeId = row[Recipes.id],
-                            name = row[Recipes.name],
-                            pic = Img.full(call, row[Recipes.pic]) ?: "",
-                            time = row[Recipes.time],
-                            difficulty = row[Recipes.difficulty],
-                            collectTime = row[RecipeCollections.createTime]
-                        )
-                    }
+                    .toList()
+
+                val recipeIds = collectRows.map { it[RecipeCollections.recipeId] }.distinct()
+                val recipeMap = if (recipeIds.isNotEmpty()) {
+                    Recipes.selectAll().where { Recipes.id inList recipeIds }
+                        .associate { it[Recipes.id] to it }
+                } else emptyMap()
+
+                val list = collectRows.map { row ->
+                    val r = recipeMap[row[RecipeCollections.recipeId]]
+                    RecipeCollectItem(
+                        id = row[RecipeCollections.id],
+                        recipeId = row[RecipeCollections.recipeId],
+                        name = r?.get(Recipes.name) ?: "",
+                        pic = Img.full(call, r?.get(Recipes.pic) ?: "") ?: "",
+                        time = r?.get(Recipes.time) ?: 0,
+                        difficulty = r?.get(Recipes.difficulty) ?: 0,
+                        collectTime = row[RecipeCollections.createTime]
+                    )
+                }
 
                 call.respond(ok(PageResult(total, list)))
             }

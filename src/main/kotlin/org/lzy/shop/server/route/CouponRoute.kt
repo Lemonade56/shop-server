@@ -63,27 +63,33 @@ fun Route.configureCouponRoutes() {
             val userId = call.currentUserId()
 
             suspendTransaction {
-                // 联查 UserCoupons + Coupons
-                val total = UserCoupons.innerJoin(Coupons).selectAll().where {
-                    UserCoupons.userId eq userId
-                }.count()
-
-                val list = UserCoupons.innerJoin(Coupons)
-                    .selectAll().where { UserCoupons.userId eq userId }
+                // 先查用户优惠券，再批量查优惠券详情，Kotlin 里合并
+                val userCouponRows = UserCoupons.selectAll().where { UserCoupons.userId eq userId }
                     .orderBy(UserCoupons.receiveTime, SortOrder.DESC)
                     .limit(10).offset(((req.page - 1) * 10).toLong())
-                    .map { row ->
-                        UserCouponItem(
-                            id = row[UserCoupons.id],
-                            couponId = row[Coupons.id],
-                            name = row[Coupons.name],
-                            discount = row[Coupons.discount],
-                            minAmount = row[Coupons.minAmount],
-                            startTime = row[Coupons.startTime],
-                            endTime = row[Coupons.endTime],
-                            status = row[UserCoupons.status]
-                        )
-                    }
+                    .toList()
+
+                val total = UserCoupons.selectAll().where { UserCoupons.userId eq userId }.count()
+
+                val couponIds = userCouponRows.map { it[UserCoupons.couponId] }.distinct()
+                val couponMap = if (couponIds.isNotEmpty()) {
+                    Coupons.selectAll().where { Coupons.id inList couponIds }
+                        .associate { it[Coupons.id] to it }
+                } else emptyMap()
+
+                val list = userCouponRows.map { row ->
+                    val c = couponMap[row[UserCoupons.couponId]]
+                    UserCouponItem(
+                        id = row[UserCoupons.id],
+                        couponId = row[UserCoupons.couponId],
+                        name = c?.get(Coupons.name) ?: "",
+                        discount = c?.get(Coupons.discount) ?: 0,
+                        minAmount = c?.get(Coupons.minAmount) ?: 0,
+                        startTime = c?.get(Coupons.startTime) ?: "",
+                        endTime = c?.get(Coupons.endTime) ?: "",
+                        status = row[UserCoupons.status]
+                    )
+                }
 
                 call.respond(ok(PageResult(total, list)))
             }

@@ -49,21 +49,29 @@ fun Route.configureCartRoutes() {
             val userId = call.currentUserId()
 
             suspendTransaction {
-                val list = Cart.innerJoin(GoodsTable)
-                    .selectAll().where { Cart.userId eq userId }
-                    .orderBy(Cart.createTime, SortOrder.DESC)
-                    .map { row ->
-                        CartItem(
-                            id = row[Cart.id],
-                            goodsId = row[Cart.goodsId],
-                            specId = row[Cart.specId],
-                            quantity = row[Cart.quantity],
-                            isSelected = row[Cart.isSelected],
-                            title = row[GoodsTable.title],
-                            mainPic = Img.full(call, row[GoodsTable.mainPic]) ?: "",
-                            price = row[GoodsTable.price]
-                        )
-                    }
+                // 先查购物车，再批量查商品，Kotlin 里合并（绕开 Exposed innerJoin 限制）
+                val cartRows = Cart.selectAll().where { Cart.userId eq userId }
+                    .orderBy(Cart.createTime, SortOrder.DESC).toList()
+
+                val goodsIds = cartRows.map { it[Cart.goodsId] }.distinct()
+                val goodsMap = if (goodsIds.isNotEmpty()) {
+                    GoodsTable.selectAll().where { GoodsTable.id inList goodsIds }
+                        .associate { it[GoodsTable.id] to it }
+                } else emptyMap()
+
+                val list = cartRows.map { row ->
+                    val g = goodsMap[row[Cart.goodsId]]
+                    CartItem(
+                        id = row[Cart.id],
+                        goodsId = row[Cart.goodsId],
+                        specId = row[Cart.specId],
+                        quantity = row[Cart.quantity],
+                        isSelected = row[Cart.isSelected],
+                        title = g?.get(GoodsTable.title) ?: "",
+                        mainPic = Img.full(call, g?.get(GoodsTable.mainPic) ?: "") ?: "",
+                        price = g?.get(GoodsTable.price) ?: 0
+                    )
+                }
 
                 call.respond(ok(list))
             }

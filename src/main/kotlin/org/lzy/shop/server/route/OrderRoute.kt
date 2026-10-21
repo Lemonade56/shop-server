@@ -313,19 +313,27 @@ fun Route.configureOrderRoutes() {
                         )
                     }
 
-                // 联查：当前用户已领取且未使用的优惠券
-                val coupons = UserCoupons.innerJoin(Coupons)
-                    .selectAll().where {
-                        (UserCoupons.userId eq userId) and (UserCoupons.status eq 0)
-                    }.map { row ->
-                        CouponItem(
-                            id = row[Coupons.id],
-                            name = row[Coupons.name],
-                            discount = row[Coupons.discount],
-                            minAmount = row[Coupons.minAmount],
-                            endTime = row[Coupons.endTime]
-                        )
-                    }
+                // 先查用户未使用优惠券，再批量查优惠券详情，Kotlin 里合并
+                val userCouponRows = UserCoupons.selectAll().where {
+                    (UserCoupons.userId eq userId) and (UserCoupons.status eq 0)
+                }.toList()
+
+                val couponIds = userCouponRows.map { it[UserCoupons.couponId] }.distinct()
+                val couponMap = if (couponIds.isNotEmpty()) {
+                    Coupons.selectAll().where { Coupons.id inList couponIds }
+                        .associate { it[Coupons.id] to it }
+                } else emptyMap()
+
+                val coupons = userCouponRows.map { row ->
+                    val c = couponMap[row[UserCoupons.couponId]]
+                    CouponItem(
+                        id = c?.get(Coupons.id) ?: 0,
+                        name = c?.get(Coupons.name) ?: "",
+                        discount = c?.get(Coupons.discount) ?: 0,
+                        minAmount = c?.get(Coupons.minAmount) ?: 0,
+                        endTime = c?.get(Coupons.endTime) ?: ""
+                    )
+                }
 
                 call.respond(ok(ConfirmOrderData(addresses, coupons)))
             }
