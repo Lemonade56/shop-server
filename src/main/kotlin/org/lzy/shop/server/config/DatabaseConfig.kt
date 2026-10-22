@@ -191,9 +191,31 @@ object DatabaseConfig {
             Cat("糖巧礼盒", 0, 8, "巧克力糖果礼盒"),
         )
         val catIds = mutableListOf<Long>()
+        /** 根据关键词返回本地商品/分类图（公开可访问，不走 Trae 内部 API） */
+        val localGoods = listOf(
+            "snack-1", "snack-2", "drink-1", "drink-2",
+            "oil-1", "oil-2", "instant-1", "instant-2",
+            "fresh-1", "fresh-2", "tea-1", "choco-1",
+        )
+        val localGoodsPics = localGoods.map { "/app/images/goods/$it.jpg" }
         fun productPic(keyword: String): String {
-            val enc = java.net.URLEncoder.encode(keyword, "UTF-8")
-            return "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=$enc&image_size=square"
+            val k = keyword
+            return when {
+                k.contains("薯片") || k.contains("膨化") || k.contains("辣条") || k.contains("面包") -> localGoodsPics[0]
+                k.contains("坚果") || k.contains("干果") || k.contains("猪肉脯") || k.contains("果脯") -> localGoodsPics[1]
+                k.contains("矿泉水") || k.contains("饮用水") || k.contains("冰红茶") || k.contains("牛奶") -> localGoodsPics[2]
+                k.contains("可乐") || k.contains("汽水") || k.contains("红牛") || k.contains("咖啡") || k.contains("能量") -> localGoodsPics[3]
+                k.contains("大米") || k.contains("五常") || k.contains("长粒香") -> localGoodsPics[4]
+                k.contains("食用油") || k.contains("花生") || k.contains("酱油") || k.contains("生抽") -> localGoodsPics[5]
+                k.contains("方便面") || k.contains("牛肉面") || k.contains("水饺") -> localGoodsPics[6]
+                k.contains("火锅") || k.contains("自热") -> localGoodsPics[7]
+                k.contains("苹果") || k.contains("香蕉") || k.contains("车厘子") || k.contains("樱桃") || k.contains("大葱") || k.contains("番茄") || k.contains("黄瓜") -> localGoodsPics[8]
+                k.contains("橙子") || k.contains("脐橙") || k.contains("芒果") -> localGoodsPics[9]
+                k.contains("茶叶") || k.contains("绿茶") || k.contains("茶饮料") || k.contains("乌龙茶") -> localGoodsPics[10]
+                k.contains("白酒") || k.contains("酒水") || k.contains("啤酒") -> localGoodsPics[10]
+                k.contains("巧克力") || k.contains("礼盒") || k.contains("糖巧") -> localGoodsPics[11]
+                else -> localGoodsPics[0]
+            }
         }
         categories.forEach { c ->
             val id = Categories.insert {
