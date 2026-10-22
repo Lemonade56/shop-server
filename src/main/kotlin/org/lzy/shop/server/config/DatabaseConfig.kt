@@ -235,57 +235,18 @@ object DatabaseConfig {
         val catTea     = catIds[6]
         val catChoco   = catIds[7]
 
-        // ===== 商品图片：用 text_to_image API 生成真实商品图（38 张覆盖所有分类） =====
-        val allGoodsPics = listOf(
-            productPic("薯片膨化零食 乐事"),
-            productPic("坚果混合干果 三只松鼠"),
-            productPic("夏威夷果坚果 良品铺子"),
-            productPic("瓜子炒货零食 洽洽"),
-            productPic("辣条面筋休闲零食 卫龙"),
-            productPic("手撕面包整箱 蛋糕"),
-            productPic("芒果干果脯水果干"),
-            productPic("猪肉脯肉干零食"),
-            productPic("碧根果山核桃坚果"),
-            productPic("薯片原味膨化食品"),
-            productPic("矿泉水瓶装饮用水"),
-            productPic("可乐汽水易拉罐装"),
-            productPic("零度无糖可乐易拉罐"),
-            productPic("瓶装矿泉水 百岁山"),
-            productPic("红牛能量饮料罐"),
-            productPic("冰红茶柠檬味瓶装"),
-            productPic("特仑苏纯牛奶盒装"),
-            productPic("生椰拿铁即饮咖啡"),
-            productPic("速溶咖啡条装"),
-            productPic("乌龙茶无糖茶饮料"),
-            productPic("五常大米袋装"),
-            productPic("东北长粒香大米"),
-            productPic("食用油桶装菜籽油"),
-            productPic("花生油压榨食用油"),
-            productPic("生抽酿造酱油"),
-            productPic("红烧牛肉面方便面"),
-            productPic("自热火锅麻辣牛肉"),
-            productPic("速冻水饺玉米蔬菜"),
-            productPic("红富士苹果新鲜水果"),
-            productPic("赣南脐橙橙子"),
-            productPic("车厘子樱桃新鲜"),
-            productPic("白酒五粮液瓶装"),
-            productPic("啤酒青岛经典罐装"),
-            productPic("茶叶绿茶竹叶青"),
-            productPic("巧克力费列罗礼盒"),
-            productPic("大白兔奶糖糖果"),
-        )
-        fun goodsPic(i: Int) = allGoodsPics[i % allGoodsPics.size]
-
-        // 为兼容下面原有代码中 snackPics[0]、drinkPics[1] 等引用，
-        // 提供按索引取图的薄包装（图片内容统一循环自 goods-1~10）
-        val snackPics   = (0 until 5).map { goodsPic(it) }
-        val drinkPics   = (5 until 10).map { goodsPic(it) }
-        val oilPics     = listOf(goodsPic(0), goodsPic(1), goodsPic(2))
-        val instantPics = listOf(goodsPic(3), goodsPic(4), goodsPic(5))
-        val freshPics   = listOf(goodsPic(6), goodsPic(7), goodsPic(8), goodsPic(9))
-        val healthPics  = listOf(goodsPic(0), goodsPic(1))
-        val teaPics     = listOf(goodsPic(2), goodsPic(3), goodsPic(4), goodsPic(5))
-        val chocoPics   = listOf(goodsPic(6), goodsPic(7))
+        // ===== 商品图片：每个分类用对应的本地商品图（12 张本地图循环覆盖） =====
+        // localGoodsPics 索引: 0=snack-1, 1=snack-2, 2=drink-1, 3=drink-2,
+        //                     4=oil-1, 5=oil-2, 6=instant-1, 7=instant-2,
+        //                     8=fresh-1(苹果), 9=fresh-2(橙), 10=tea-1, 11=choco-1
+        val snackPics   = listOf(localGoodsPics[0], localGoodsPics[1], localGoodsPics[0], localGoodsPics[1], localGoodsPics[0])
+        val drinkPics   = listOf(localGoodsPics[2], localGoodsPics[3], localGoodsPics[2], localGoodsPics[3], localGoodsPics[2])
+        val oilPics     = listOf(localGoodsPics[4], localGoodsPics[5], localGoodsPics[4])
+        val instantPics = listOf(localGoodsPics[6], localGoodsPics[7], localGoodsPics[6])
+        val freshPics   = listOf(localGoodsPics[8], localGoodsPics[9], localGoodsPics[8], localGoodsPics[9])
+        val healthPics  = listOf(localGoodsPics[1], localGoodsPics[10])
+        val teaPics     = listOf(localGoodsPics[10], localGoodsPics[3], localGoodsPics[10], localGoodsPics[11])
+        val chocoPics   = listOf(localGoodsPics[11], localGoodsPics[0])
 
         // ===== 轮播图 =====
         data class BannerImg(val keyword: String, val title: String, val sort: Int)
