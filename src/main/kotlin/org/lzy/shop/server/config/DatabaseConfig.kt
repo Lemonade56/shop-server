@@ -155,6 +155,27 @@ object DatabaseConfig {
 
         if (!needSeed) return
 
+        // 需要全量重种 —— 先清干净所有业务表（避免旧数据和新种子并存/重复）
+        OrderItems.deleteAll()
+        Orders.deleteAll()
+        GoodsSpecs.deleteAll()
+        Goods.deleteAll()
+        Banners.deleteAll()
+        SearchKeywords.deleteAll()
+        Coupons.deleteAll()
+        UserCoupons.deleteAll()
+        Addresses.deleteAll()
+        Cart.deleteAll()
+        Collections.deleteAll()
+        Notifications.deleteAll()
+        Feedbacks.deleteAll()
+        Comments.deleteAll()
+        RecipeCollections.deleteAll()
+        RecipeIngredients.deleteAll()
+        RecipeSteps.deleteAll()
+        Recipes.deleteAll()
+        Categories.deleteAll()
+
         val now = System.currentTimeMillis().toString()
 
         // ===== 分类 =====
