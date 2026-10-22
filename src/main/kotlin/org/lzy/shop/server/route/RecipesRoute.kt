@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -57,20 +58,15 @@ fun Route.configureRecipesRoutes() {
         )
 
         suspendTransaction {
-            var query = Recipes.selectAll().where { Recipes.status eq 1 }
-            if (category != null) {
-                query = Recipes.selectAll().where {
-                    (Recipes.status eq 1) and (Recipes.category eq category)
-                }
+            // 先构造 WHERE 条件，把所有 filter 都 AND 组合在一起
+            val list = Recipes.selectAll().where {
+                var cond = (Recipes.status eq 1)
+                if (category != null) cond = cond and (Recipes.category eq category)
+                if (keyword != null) cond = cond and (Recipes.name like "%$keyword%")
+                cond
             }
-            if (keyword != null) {
-                query = Recipes.selectAll().where {
-                    (Recipes.status eq 1) and (Recipes.name like "%$keyword%")
-                }
-            }
-
-            val total = query.count()
-            val list = query.orderBy(Recipes.sortNum, SortOrder.ASC)
+            val total = list.count()
+            val items = list.orderBy(Recipes.sortNum, SortOrder.ASC)
                 .limit(10).offset(((page - 1) * 10).toLong())
                 .map { row ->
                     RecipeItem(
@@ -85,7 +81,7 @@ fun Route.configureRecipesRoutes() {
                     )
                 }
 
-            call.respond(ok(PageResult(total, list)))
+            call.respond(ok(PageResult(total, items)))
         }
     }
 
@@ -115,24 +111,27 @@ fun Route.configureRecipesRoutes() {
             val row = Recipes.selectAll().where { Recipes.id eq id }.firstOrNull()
                 ?: return@suspendTransaction call.respond(fail<String>(ResultCode.NOT_FOUND, "菜谱不存在"))
 
-            // 食材清单 + 关联商品标题
-            val ingredients = RecipeIngredients.selectAll().where { RecipeIngredients.recipeId eq id }
+            // 食材清单
+            val ingredientRows = RecipeIngredients.selectAll().where { RecipeIngredients.recipeId eq id }
                 .orderBy(RecipeIngredients.sortNum, SortOrder.ASC)
-                .map { ing ->
-                    val gid = ing[RecipeIngredients.goodsId]
-                    var goodsTitle: String? = null
-                    if (gid != null) {
-                        val g = Goods.selectAll().where { Goods.id eq gid }.firstOrNull()
-                        goodsTitle = g?.get(Goods.title)
-                    }
-                    Ingredient(
-                        id = ing[RecipeIngredients.id],
-                        ingredientName = ing[RecipeIngredients.ingredientName],
-                        quantity = ing[RecipeIngredients.quantity],
-                        goodsId = gid,
-                        goodsTitle = goodsTitle
-                    )
-                }
+
+            // 一次性批量查出所有关联的商品标题，避免 N+1
+            val goodsIds = ingredientRows.mapNotNull { it[RecipeIngredients.goodsId] }.distinct()
+            val goodsTitleMap = if (goodsIds.isNotEmpty()) {
+                Goods.selectAll().where { Goods.id inList goodsIds }
+                    .associate { it[Goods.id] to it[Goods.title] }
+            } else emptyMap()
+
+            val ingredients = ingredientRows.map { ing ->
+                val gid = ing[RecipeIngredients.goodsId]
+                Ingredient(
+                    id = ing[RecipeIngredients.id],
+                    ingredientName = ing[RecipeIngredients.ingredientName],
+                    quantity = ing[RecipeIngredients.quantity],
+                    goodsId = gid,
+                    goodsTitle = gid?.let { goodsTitleMap[it] }
+                )
+            }
 
             // 做法步骤
             val steps = RecipeSteps.selectAll().where { RecipeSteps.recipeId eq id }
