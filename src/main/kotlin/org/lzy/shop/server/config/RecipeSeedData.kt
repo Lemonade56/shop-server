@@ -11,6 +11,28 @@ object RecipeSeedData {
     /** 本地菜谱图片路径（相对于 classpath resources/app） */
     fun pic(file: String) = "/app/images/recipes/$file"
 
+    /** 通用步骤图路径（相对于 classpath resources/app） */
+    fun stepPic(file: String) = "/app/images/steps/$file"
+
+    /** 7 张通用步骤图：备料→炒→炖→蒸→煮→拌→装盘 */
+    val genericStepPics = listOf(
+        stepPic("s1-prepare.jpg"),
+        stepPic("s2-fry.jpg"),
+        stepPic("s3-braise.jpg"),
+        stepPic("s4-steam.jpg"),
+        stepPic("s5-boil.jpg"),
+        stepPic("s6-mix.jpg"),
+        stepPic("s7-plate.jpg"),
+    )
+
+    /** 根据步骤序号取配图：最后一步 = 菜品主图（成品），其他 = 通用步骤图 */
+    fun stepImage(stepIdx: Int, totalSteps: Int, recipeMainPic: String): String? {
+        return when {
+            stepIdx == totalSteps - 1 -> recipeMainPic          // 最后一步用成品主图
+            else -> genericStepPics[stepIdx % genericStepPics.size]
+        }
+    }
+
     data class RecipeSeed(
         val name: String, val desc: String, val pic: String,
         val cat: String, val diff: Int, val time: Int,

@@ -1,9 +1,15 @@
 package org.lzy.shop.server.config
 
-import kotlin.random.Random
-import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
+import org.lzy.shop.server.config.DatabaseConfig.connect
 
 /**
  * 数据库连接 + 建表
@@ -69,23 +75,11 @@ object DatabaseConfig {
     private fun seedIfEmpty() {
         val existingCats = Categories.selectAll().map { it[Categories.name] }.toSet()
 
-        // 检测是否需要重置：
-        // 1. 分类里有明显的非食品类 → 全量清掉重灌
-        // 2. 种子版本变化（goodsPics 分类映射修复）→ 强制重灌
+        // 检测是否需要重置：如果分类里有明显的非食品类，就全量清掉重灌
         val needReset = existingCats.isNotEmpty() &&
             existingCats.none { it.contains("零食") || it.contains("饮料") || it.contains("粮油") }
 
-        // 版本检测：找生鲜类商品，如果 mainPic 还包含 snack 说明是旧的错误映射
-        val needFreshReset = Goods.selectAll().any { g ->
-            val title = g[Goods.title]
-            val pic = g[Goods.mainPic]
-            (title.contains("苹果") || title.contains("脐橙") || title.contains("车厘子")) &&
-                (pic.contains("snack") || pic.contains("drink") || pic.contains("instant") || pic.contains("oil"))
-        }
-
-        val shouldResetAll = needReset || needFreshReset
-
-        if (shouldResetAll) {
+        if (needReset) {
             // 按外键依赖顺序清表
             OrderItems.deleteAll()
             Orders.deleteAll()
@@ -203,31 +197,9 @@ object DatabaseConfig {
             Cat("糖巧礼盒", 0, 8, "巧克力糖果礼盒"),
         )
         val catIds = mutableListOf<Long>()
-        /** 根据关键词返回本地商品/分类图（公开可访问，不走 Trae 内部 API） */
-        val localGoods = listOf(
-            "snack-1", "snack-2", "drink-1", "drink-2",
-            "oil-1", "oil-2", "instant-1", "instant-2",
-            "fresh-1", "fresh-2", "tea-1", "choco-1",
-        )
-        val localGoodsPics = localGoods.map { "/app/images/goods/$it.jpg" }
         fun productPic(keyword: String): String {
-            val k = keyword
-            return when {
-                k.contains("薯片") || k.contains("膨化") || k.contains("辣条") || k.contains("面包") -> localGoodsPics[0]
-                k.contains("坚果") || k.contains("干果") || k.contains("猪肉脯") || k.contains("果脯") -> localGoodsPics[1]
-                k.contains("矿泉水") || k.contains("饮用水") || k.contains("冰红茶") || k.contains("牛奶") -> localGoodsPics[2]
-                k.contains("可乐") || k.contains("汽水") || k.contains("红牛") || k.contains("咖啡") || k.contains("能量") -> localGoodsPics[3]
-                k.contains("大米") || k.contains("五常") || k.contains("长粒香") -> localGoodsPics[4]
-                k.contains("食用油") || k.contains("花生") || k.contains("酱油") || k.contains("生抽") -> localGoodsPics[5]
-                k.contains("方便面") || k.contains("牛肉面") || k.contains("水饺") -> localGoodsPics[6]
-                k.contains("火锅") || k.contains("自热") -> localGoodsPics[7]
-                k.contains("苹果") || k.contains("香蕉") || k.contains("车厘子") || k.contains("樱桃") || k.contains("大葱") || k.contains("番茄") || k.contains("黄瓜") -> localGoodsPics[8]
-                k.contains("橙子") || k.contains("脐橙") || k.contains("芒果") -> localGoodsPics[9]
-                k.contains("茶叶") || k.contains("绿茶") || k.contains("茶饮料") || k.contains("乌龙茶") -> localGoodsPics[10]
-                k.contains("白酒") || k.contains("酒水") || k.contains("啤酒") -> localGoodsPics[10]
-                k.contains("巧克力") || k.contains("礼盒") || k.contains("糖巧") -> localGoodsPics[11]
-                else -> localGoodsPics[0]
-            }
+            val enc = java.net.URLEncoder.encode(keyword, "UTF-8")
+            return "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=$enc&image_size=square"
         }
         categories.forEach { c ->
             val id = Categories.insert {
@@ -247,18 +219,57 @@ object DatabaseConfig {
         val catTea     = catIds[6]
         val catChoco   = catIds[7]
 
-        // ===== 商品图片：每个分类用对应的本地商品图（12 张本地图循环覆盖） =====
-        // localGoodsPics 索引: 0=snack-1, 1=snack-2, 2=drink-1, 3=drink-2,
-        //                     4=oil-1, 5=oil-2, 6=instant-1, 7=instant-2,
-        //                     8=fresh-1(苹果), 9=fresh-2(橙), 10=tea-1, 11=choco-1
-        val snackPics   = listOf(localGoodsPics[0], localGoodsPics[1], localGoodsPics[0], localGoodsPics[1], localGoodsPics[0])
-        val drinkPics   = listOf(localGoodsPics[2], localGoodsPics[3], localGoodsPics[2], localGoodsPics[3], localGoodsPics[2])
-        val oilPics     = listOf(localGoodsPics[4], localGoodsPics[5], localGoodsPics[4])
-        val instantPics = listOf(localGoodsPics[6], localGoodsPics[7], localGoodsPics[6])
-        val freshPics   = listOf(localGoodsPics[8], localGoodsPics[9], localGoodsPics[8], localGoodsPics[9])
-        val healthPics  = listOf(localGoodsPics[1], localGoodsPics[10])
-        val teaPics     = listOf(localGoodsPics[10], localGoodsPics[3], localGoodsPics[10], localGoodsPics[11])
-        val chocoPics   = listOf(localGoodsPics[11], localGoodsPics[0])
+        // ===== 商品图片：用 text_to_image API 生成真实商品图（38 张覆盖所有分类） =====
+        val allGoodsPics = listOf(
+            productPic("薯片膨化零食 乐事"),
+            productPic("坚果混合干果 三只松鼠"),
+            productPic("夏威夷果坚果 良品铺子"),
+            productPic("瓜子炒货零食 洽洽"),
+            productPic("辣条面筋休闲零食 卫龙"),
+            productPic("手撕面包整箱 蛋糕"),
+            productPic("芒果干果脯水果干"),
+            productPic("猪肉脯肉干零食"),
+            productPic("碧根果山核桃坚果"),
+            productPic("薯片原味膨化食品"),
+            productPic("矿泉水瓶装饮用水"),
+            productPic("可乐汽水易拉罐装"),
+            productPic("零度无糖可乐易拉罐"),
+            productPic("瓶装矿泉水 百岁山"),
+            productPic("红牛能量饮料罐"),
+            productPic("冰红茶柠檬味瓶装"),
+            productPic("特仑苏纯牛奶盒装"),
+            productPic("生椰拿铁即饮咖啡"),
+            productPic("速溶咖啡条装"),
+            productPic("乌龙茶无糖茶饮料"),
+            productPic("五常大米袋装"),
+            productPic("东北长粒香大米"),
+            productPic("食用油桶装菜籽油"),
+            productPic("花生油压榨食用油"),
+            productPic("生抽酿造酱油"),
+            productPic("红烧牛肉面方便面"),
+            productPic("自热火锅麻辣牛肉"),
+            productPic("速冻水饺玉米蔬菜"),
+            productPic("红富士苹果新鲜水果"),
+            productPic("赣南脐橙橙子"),
+            productPic("车厘子樱桃新鲜"),
+            productPic("白酒五粮液瓶装"),
+            productPic("啤酒青岛经典罐装"),
+            productPic("茶叶绿茶竹叶青"),
+            productPic("巧克力费列罗礼盒"),
+            productPic("大白兔奶糖糖果"),
+        )
+        fun goodsPic(i: Int) = allGoodsPics[i % allGoodsPics.size]
+
+        // 为兼容下面原有代码中 snackPics[0]、drinkPics[1] 等引用，
+        // 提供按索引取图的薄包装（图片内容统一循环自 goods-1~10）
+        val snackPics   = (0 until 5).map { goodsPic(it) }
+        val drinkPics   = (5 until 10).map { goodsPic(it) }
+        val oilPics     = listOf(goodsPic(0), goodsPic(1), goodsPic(2))
+        val instantPics = listOf(goodsPic(3), goodsPic(4), goodsPic(5))
+        val freshPics   = listOf(goodsPic(6), goodsPic(7), goodsPic(8), goodsPic(9))
+        val healthPics  = listOf(goodsPic(0), goodsPic(1))
+        val teaPics     = listOf(goodsPic(2), goodsPic(3), goodsPic(4), goodsPic(5))
+        val chocoPics   = listOf(goodsPic(6), goodsPic(7))
 
         // ===== 轮播图 =====
         data class BannerImg(val keyword: String, val title: String, val sort: Int)
@@ -510,13 +521,14 @@ object DatabaseConfig {
                 }
             }
 
-            // 做法步骤
+            // 做法步骤（配图：最后一步 = 成品主图，其他 = 通用步骤图）
+            val totalSteps = r.steps.size
             r.steps.forEachIndexed { stepIdx, content ->
                 RecipeSteps.insert {
                     it[RecipeSteps.recipeId] = rid
                     it[RecipeSteps.stepNo] = stepIdx + 1
                     it[RecipeSteps.content] = content
-                    it[RecipeSteps.pic] = null
+                    it[RecipeSteps.pic] = RecipeSeedData.stepImage(stepIdx, totalSteps, r.pic)
                     it[RecipeSteps.sortNum] = stepIdx
                 }
             }

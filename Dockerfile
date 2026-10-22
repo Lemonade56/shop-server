@@ -14,6 +14,12 @@
 FROM openjdk:17-jre-slim
 WORKDIR /app
 
+# AWT/BufferedImage 渲染验证码需要字体（headless 容器默认没有）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fontconfig fonts-dejavu fonts-liberation ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -fv
+
 # 拷贝预编译产物（本地 installDist 输出，已含所有依赖 jar + $$serializer）
 COPY prebuilt/ShopServer /app
 
