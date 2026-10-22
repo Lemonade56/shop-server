@@ -69,11 +69,23 @@ object DatabaseConfig {
     private fun seedIfEmpty() {
         val existingCats = Categories.selectAll().map { it[Categories.name] }.toSet()
 
-        // 检测是否需要重置：如果分类里有明显的非食品类，就全量清掉重灌
+        // 检测是否需要重置：
+        // 1. 分类里有明显的非食品类 → 全量清掉重灌
+        // 2. 种子版本变化（goodsPics 分类映射修复）→ 强制重灌
         val needReset = existingCats.isNotEmpty() &&
             existingCats.none { it.contains("零食") || it.contains("饮料") || it.contains("粮油") }
 
-        if (needReset) {
+        // 版本检测：找生鲜类商品，如果 mainPic 还包含 snack 说明是旧的错误映射
+        val needFreshReset = Goods.selectAll().any { g ->
+            val title = g[Goods.title]
+            val pic = g[Goods.mainPic]
+            (title.contains("苹果") || title.contains("脐橙") || title.contains("车厘子")) &&
+                (pic.contains("snack") || pic.contains("drink") || pic.contains("instant") || pic.contains("oil"))
+        }
+
+        val shouldResetAll = needReset || needFreshReset
+
+        if (shouldResetAll) {
             // 按外键依赖顺序清表
             OrderItems.deleteAll()
             Orders.deleteAll()
