@@ -123,68 +123,49 @@ fun Route.configureUserRoutes() {
     }
 
     get("user/login/captcha") {
-        // 兼容 App 端传入的 type/width/height 参数（均忽略，服务端统一生成文本图形验证码）
-        val type = call.request.queryParameters["type"]   // 如 blockPuzzle，忽略
-        val widthParam = call.request.queryParameters["width"]?.toIntOrNull()  // 忽略
-        val heightParam = call.request.queryParameters["height"]?.toIntOrNull() // 忽略
-
         // 生成 4 位随机验证码（去掉易混淆字符 0/O/1/I/l）
         val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         val rand = java.util.Random()
         val code = (1..4).map { chars[rand.nextInt(chars.length)] }.joinToString("")
 
-        val width = 120
-        val height = 40
-        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-        val g = image.createGraphics()
+        // 生成纯 SVG 验证码（零 AWT 依赖，headless 容器也能跑）
+        // 随机颜色 + 随机角度模拟图形验证码的视觉效果
+        val colors = listOf("#e74c3c", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085")
+        val letterSvg = code.mapIndexed { i, c ->
+            val color = colors[rand.nextInt(colors.size)]
+            val angle = rand.nextInt(30) - 15
+            val x = 18 + i * 26
+            """<text x="$x" y="28" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="$color" transform="rotate($angle $x 28)">$c</text>"""
+        }.joinToString("")
 
-        // 背景色（浅灰黄）
-        g.color = Color(245, 240, 230)
-        g.fillRect(0, 0, width, height)
+        val lineSvg = (1..3).map {
+            val x1 = rand.nextInt(80)
+            val y1 = rand.nextInt(30) + 5
+            val x2 = x1 + rand.nextInt(40) + 20
+            val y2 = y1 + rand.nextInt(20) - 10
+            val color = colors[rand.nextInt(colors.size)]
+            """<line x1="$x1" y1="$y1" x2="$x2" y2="$y2" stroke="$color" stroke-width="1" opacity="0.4"/>"""
+        }.joinToString("")
 
-        // 画干扰线
-        repeat(5) {
-            g.color = Color(rand.nextInt(40) + 180, rand.nextInt(40) + 180, rand.nextInt(40) + 180)
-            g.drawLine(rand.nextInt(width), rand.nextInt(height),
-                       rand.nextInt(width), rand.nextInt(height))
-        }
+        val svg = """
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <rect width="120" height="40" fill="#f5f0e6"/>
+  $lineSvg
+  $letterSvg
+</svg>"""
 
-        // 画噪点
-        repeat(60) {
-            g.color = Color(rand.nextInt(50) + 150, rand.nextInt(50) + 150, rand.nextInt(50) + 150)
-            g.fillRect(rand.nextInt(width), rand.nextInt(height), 2, 2)
-        }
+        val base64 = java.util.Base64.getEncoder().encodeToString(svg.toByteArray())
 
-        // 画验证码字符（随机颜色 + 随机 Y 偏移）
-        val font = Font("Arial", Font.BOLD, 28)
-        g.font = font
-        code.forEachIndexed { i, c ->
-            g.color = Color(rand.nextInt(100) + 20, rand.nextInt(100) + 20, rand.nextInt(100) + 20)
-            val x = 15 + i * 25
-            val y = 28 + rand.nextInt(9) - 4
-            g.drawString(c.toString(), x, y)
-        }
-
-        g.dispose()
-
-        // 编码为 PNG
-        val baos = ByteArrayOutputStream()
-        ImageIO.write(image, "png", baos)
-        val pngBytes = baos.toByteArray()
-
-        // 把正确答案存到内存 Map（key=captchaId, value=code），后续登录时验证
+        // 把正确答案存到内存 Map
         val captchaId = "C${System.currentTimeMillis()}"
         captchaStore[captchaId] = code
-        // 限制 Map 大小，超过 200 条清理最早的
         if (captchaStore.size > 200) {
             val oldest = captchaStore.keys.take(captchaStore.size - 200)
             oldest.forEach { captchaStore.remove(it) }
         }
 
-        // 返回：captchaId（前端后续登录时带上） + 图片 Base64
-        val base64 = java.util.Base64.getEncoder().encodeToString(pngBytes)
         @Serializable data class CaptchaResult(val captchaId: String, val image: String)
-        call.respond(ok(CaptchaResult(captchaId = captchaId, image = "data:image/png;base64,$base64")))
+        call.respond(ok(CaptchaResult(captchaId = captchaId, image = "data:image/svg+xml;base64,$base64")))
     }
 
     post("user/login/smsCode") {
