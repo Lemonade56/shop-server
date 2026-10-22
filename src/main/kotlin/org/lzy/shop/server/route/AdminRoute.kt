@@ -916,7 +916,7 @@ fun Route.configureAdminRoutes() {
         target.writeBytes(bytes)
 
         @Serializable data class UploadResult(val url: String)
-        call.respond(ok(UploadResult(url = "/uploads/$safeName")))
+        call.respond(ok(UploadResult(url = Img.full(call, "/uploads/$safeName") ?: "/uploads/$safeName")))
     }
 
     // ===== 菜谱管理 =====
