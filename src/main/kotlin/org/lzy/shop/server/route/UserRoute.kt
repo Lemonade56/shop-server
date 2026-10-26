@@ -20,6 +20,7 @@ import org.lzy.shop.server.config.Orders
 import org.lzy.shop.server.config.RecipeCollections
 import org.lzy.shop.server.config.Collections
 import org.lzy.shop.server.config.UserCoupons
+import org.lzy.shop.server.config.Notifications
 import org.lzy.shop.server.config.Addresses
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.inList
@@ -33,6 +34,12 @@ import javax.imageio.ImageIO
 
 /** 验证码内存存储：captchaId → 正确答案（线程安全，ConcurrentHashMap 语义由 Kotlin 默认 mutableMapOf + 单 JVM 实例保证） */
 private val captchaStore = LinkedHashMap<String, String>()
+
+/** 短信验证码内存存储：phone → smsCode（Demo 模式下，6 位数字验证码） */
+private val smsCodeStore = LinkedHashMap<String, String>()
+
+/** 文件级随机数实例，供验证码生成共享使用 */
+private val rand = java.util.Random()
 
 /**
  * 用户/认证相关路由 —— 对齐 App 端 UserApi.kt
@@ -102,6 +109,17 @@ fun Route.configureUserRoutes() {
         val req = runCatching { call.receive<Req>() }.getOrNull()
             ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
+        // 校验短信验证码
+        val correctSms = smsCodeStore[req.phone]
+        if (correctSms == null) {
+            return@post call.respond(fail<String>(message = "请先获取短信验证码"))
+        }
+        if (correctSms != req.smsCode) {
+            return@post call.respond(fail<String>(message = "短信验证码错误"))
+        }
+        // 验证成功后删除，防止重复使用
+        smsCodeStore.remove(req.phone)
+
         suspendTransaction {
             val user = Users.selectAll().where { Users.phone eq req.phone }.firstOrNull()
                 ?: return@suspendTransaction call.respond(fail<String>(message = "该手机号未注册"))
@@ -123,38 +141,63 @@ fun Route.configureUserRoutes() {
     }
 
     get("user/login/captcha") {
-        // 生成 4 位随机验证码（去掉易混淆字符 0/O/1/I/l）
-        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        val rand = java.util.Random()
+        // 生成 4 位随机验证码
+        val chars = "0123456789"
         val code = (1..4).map { chars[rand.nextInt(chars.length)] }.joinToString("")
 
-        // 生成纯 SVG 验证码（零 AWT 依赖，headless 容器也能跑）
-        // 随机颜色 + 随机角度模拟图形验证码的视觉效果
-        val colors = listOf("#e74c3c", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085")
-        val letterSvg = code.mapIndexed { i, c ->
-            val color = colors[rand.nextInt(colors.size)]
-            val angle = rand.nextInt(30) - 15
-            val x = 18 + i * 26
-            """<text x="$x" y="28" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="$color" transform="rotate($angle $x 28)">$c</text>"""
-        }.joinToString("")
+        // 用 BufferedImage 生成 PNG 图形验证码（Android Glide/Coil 直接可用）
+        val width = 120
+        val height = 40
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics()
 
-        val lineSvg = (1..3).map {
+        // 背景色
+        g.color = Color(245, 240, 230)
+        g.fillRect(0, 0, width, height)
+
+        // 干扰线
+        val lineColors = listOf(Color(231, 76, 60), Color(41, 128, 185), Color(39, 174, 96), Color(142, 68, 173), Color(211, 84, 0))
+        repeat(4) {
+            g.color = lineColors[rand.nextInt(lineColors.size)]
             val x1 = rand.nextInt(80)
             val y1 = rand.nextInt(30) + 5
             val x2 = x1 + rand.nextInt(40) + 20
             val y2 = y1 + rand.nextInt(20) - 10
-            val color = colors[rand.nextInt(colors.size)]
-            """<line x1="$x1" y1="$y1" x2="$x2" y2="$y2" stroke="$color" stroke-width="1" opacity="0.4"/>"""
-        }.joinToString("")
+            g.drawLine(x1, y1, x2, y2)
+        }
 
-        val svg = """
-<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
-  <rect width="120" height="40" fill="#f5f0e6"/>
-  $lineSvg
-  $letterSvg
-</svg>"""
+        // 随机噪声点
+        repeat(30) {
+            g.color = Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256))
+            g.fillOval(rand.nextInt(width), rand.nextInt(height), 2, 2)
+        }
 
-        val base64 = java.util.Base64.getEncoder().encodeToString(svg.toByteArray())
+        // 绘制验证码文字（随机颜色 + 随机角度）
+        val font = java.awt.Font("Arial", java.awt.Font.BOLD, 28)
+        g.font = font
+        val fontMetrics = g.fontMetrics
+        code.forEachIndexed { i, c ->
+            val letter = c.toString()
+            val textWidth = fontMetrics.stringWidth(letter)
+            val x = 15 + i * 25 + rand.nextInt(3)
+            val y = 30 + rand.nextInt(4) - 2
+            g.color = lineColors[rand.nextInt(lineColors.size)]
+
+            // 用 Graphics2D 做旋转
+            val g2d = g.create() as Graphics2D
+            val angle = (rand.nextInt(30) - 15).toDouble()
+            val theta = Math.toRadians(angle)
+            g2d.rotate(theta, x + textWidth / 2.0, (y - 5).toDouble())
+            g2d.drawString(letter, x, y)
+            g2d.dispose()
+        }
+
+        g.dispose()
+
+        // 转 PNG → Base64
+        val baos = ByteArrayOutputStream()
+        ImageIO.write(image, "png", baos)
+        val base64 = java.util.Base64.getEncoder().encodeToString(baos.toByteArray())
 
         // 把正确答案存到内存 Map
         val captchaId = "C${System.currentTimeMillis()}"
@@ -165,7 +208,26 @@ fun Route.configureUserRoutes() {
         }
 
         @Serializable data class CaptchaResult(val captchaId: String, val image: String)
-        call.respond(ok(CaptchaResult(captchaId = captchaId, image = "data:image/svg+xml;base64,$base64")))
+        call.respond(ok(CaptchaResult(captchaId = captchaId, image = "data:image/png;base64,$base64")))
+    }
+
+    post("user/login/captcha/verify") {
+        // 校验图形验证码（在发送短信验证码/登录前调用）
+        @Serializable data class Req(val captchaId: String, val captchaCode: String)
+        val req = runCatching { call.receive<Req>() }.getOrNull()
+            ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
+
+        val correct = captchaStore[req.captchaId]
+        if (correct == null) {
+            return@post call.respond(fail<String>(message = "验证码已过期，请重新获取"))
+        }
+        if (correct.equals(req.captchaCode, ignoreCase = true)) {
+            // 验证成功后删除，防止重复使用
+            captchaStore.remove(req.captchaId)
+            call.respond(okMsg("验证验证码"))
+        } else {
+            call.respond(fail<String>(message = "图形验证码错误"))
+        }
     }
 
     post("user/login/smsCode") {
@@ -173,8 +235,19 @@ fun Route.configureUserRoutes() {
         val req = runCatching { call.receive<Req>() }.getOrNull()
             ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
-        // 实际项目里这里会调短信服务商 API，Demo 模式下直接返回"已发送"
-        call.respond(ok("验证码已发送（Demo 模式：123456）"))
+        if (req.phone.isBlank()) {
+            return@post call.respond(fail<String>(message = "手机号不能为空"))
+        }
+
+        // Demo 模式下生成 6 位随机验证码并存入内存（实际项目这里调短信服务商 API）
+        val smsCode = (1..6).map { rand.nextInt(10).toString() }.joinToString("")
+        smsCodeStore[req.phone] = smsCode
+        // 限制内存大小，超过 500 条清理最早的
+        if (smsCodeStore.size > 500) {
+            val oldest = smsCodeStore.keys.take(smsCodeStore.size - 500)
+            oldest.forEach { smsCodeStore.remove(it) }
+        }
+        call.respond(ok("验证码已发送（Demo 模式：$smsCode）"))
     }
 
     post("user/login/register") {
@@ -184,6 +257,12 @@ fun Route.configureUserRoutes() {
 
         if (req.phone.isBlank() || req.password.isBlank()) {
             return@post call.respond(fail<String>(message = "手机号和密码不能为空"))
+        }
+
+        // 校验短信验证码（注册前需先获取）
+        val correctSms = smsCodeStore[req.phone]
+        if (correctSms != null && correctSms != req.smsCode) {
+            return@post call.respond(fail<String>(message = "短信验证码错误"))
         }
 
         suspendTransaction {
@@ -198,6 +277,7 @@ fun Route.configureUserRoutes() {
                 it[Users.createTime] = System.currentTimeMillis().toString()
                 it[Users.updateTime] = System.currentTimeMillis().toString()
             }
+            smsCodeStore.remove(req.phone)  // 注册成功清理验证码
             call.respond(okMsg("注册账号"))
         }
     }
@@ -207,6 +287,15 @@ fun Route.configureUserRoutes() {
         val req = runCatching { call.receive<Req>() }.getOrNull()
             ?: return@post call.respond(fail<String>(code = ResultCode.BAD_REQUEST, message = "请求参数格式错误"))
 
+        // 校验短信验证码
+        val correctSms = smsCodeStore[req.phone]
+        if (correctSms == null) {
+            return@post call.respond(fail<String>(message = "请先获取短信验证码"))
+        }
+        if (correctSms != req.smsCode) {
+            return@post call.respond(fail<String>(message = "短信验证码错误"))
+        }
+
         suspendTransaction {
             val user = Users.selectAll().where { Users.phone eq req.phone }.firstOrNull()
                 ?: return@suspendTransaction call.respond(fail<String>(message = "该手机号未注册"))
@@ -214,6 +303,7 @@ fun Route.configureUserRoutes() {
                 it[Users.password] = req.newPassword  // TODO: BCrypt
                 it[Users.updateTime] = System.currentTimeMillis().toString()
             }
+            smsCodeStore.remove(req.phone)  // 重置成功清理验证码
             call.respond(okMsg("重置密码"))
         }
     }
@@ -320,6 +410,59 @@ fun Route.configureUserRoutes() {
                 )
             }
         }
+    }  // ← 关闭第一个 authenticate("auth-jwt")
+
+    // ===== 免登录聚合接口：我的页面一次性返回所有动态数据 =====
+    get("user/mine") {
+        // 前端进"我的"页面只调这一个接口即可
+        // 未登录：isLogin=false, user=null, counts 全 0
+        // 已登录：返回用户信息 + 优惠券数 + 未读消息数
+        @Serializable data class MineUser(
+            val id: Long, val nickname: String, val avatarUrl: String, val phoneMasked: String
+        )
+        @Serializable data class MineInfo(
+            val isLogin: Boolean,
+            val user: MineUser? = null,
+            val couponCount: Long = 0,       // 可用优惠券数（status=0）
+            val unreadCount: Long = 0         // 未读消息数
+        )
+
+        val userId = call.currentUserIdOrNull()
+        if (userId == null) {
+            call.respond(ok(MineInfo(isLogin = false)))
+            return@get
+        }
+
+        suspendTransaction {
+            val user = Users.selectAll().where { Users.id eq userId }.firstOrNull()
+                ?: return@suspendTransaction call.respond(ok(MineInfo(isLogin = false)))
+
+            val couponCount = UserCoupons.selectAll().where {
+                (UserCoupons.userId eq userId) and (UserCoupons.status eq 0)
+            }.count()
+
+            val unreadCount = Notifications.selectAll().where {
+                (Notifications.userId eq userId) and (Notifications.isRead eq false)
+            }.count()
+
+            val phone = user[Users.phone]
+            val masked = if (phone.length >= 11) phone.take(3) + "****" + phone.takeLast(4) else phone
+
+            call.respond(ok(MineInfo(
+                isLogin = true,
+                user = MineUser(
+                    id = user[Users.id],
+                    nickname = user[Users.nickname] ?: "美食爱好者",
+                    avatarUrl = Img.full(call, user[Users.avatarUrl] ?: "") ?: "",
+                    phoneMasked = masked
+                ),
+                couponCount = couponCount,
+                unreadCount = unreadCount
+            )))
+        }
+    }
+
+    authenticate("auth-jwt") {
 
         get("user/info/person") {
             val userId = call.currentUserIdOrNull()

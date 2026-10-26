@@ -2,6 +2,8 @@
 
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
@@ -15,6 +17,7 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.lzy.shop.server.auth.currentUserIdOrNull
 import org.lzy.shop.server.common.Img
+import org.lzy.shop.server.common.PageResult
 import org.lzy.shop.server.common.ok
 import org.lzy.shop.server.config.*
 import java.time.LocalDateTime
@@ -137,10 +140,10 @@ fun Route.configureHomeRoutes() {
                 MealScene(4, "烘焙甜品", "60min", 128, "https://picsum.photos/seed/scene-bake/600/600", "#E8B4B8"),
             )
 
-            // —— 热门菜谱（两列卡片，取前 6 张）——
+            // —— 热门菜谱（两列卡片，取前 10 张）——
             val hotRecipes = Recipes.selectAll().where { Recipes.status eq 1 }
                 .orderBy(Recipes.sortNum, SortOrder.ASC)
-                .limit(6)
+                .limit(10)
                 .map { row ->
                     HotRecipeItem(
                         id = row[Recipes.id],
@@ -151,14 +154,14 @@ fun Route.configureHomeRoutes() {
                     )
                 }
 
-            // —— 当季食材（取 Goods 表里 category=生鲜果蔬，按 sortNum 排前 8 个，横向滚动）——
+            // —— 当季食材（取 Goods 表里 category=生鲜果蔬，按 sortNum 排前 10 个，横向滚动）——
             // 动态找一下生鲜果蔬分类的 id
             val freshCat = Categories.selectAll().where { Categories.name eq "生鲜果蔬" }.firstOrNull()
             val freshTypeId = freshCat?.get(Categories.id)
             val seasonalIngredients = if (freshTypeId != null) {
                 Goods.selectAll().where { (Goods.typeId eq freshTypeId) and (Goods.status eq 1) }
                     .orderBy(Goods.sortNum, SortOrder.ASC)
-                    .limit(8)
+                    .limit(10)
                     .map { row ->
                         SeasonalIngredient(
                             id = row[Goods.id],
@@ -331,6 +334,75 @@ fun Route.configureHomeRoutes() {
                 }
 
             call.respond(ok(list))
+        }
+    }
+
+    // ===== 当季食材列表（分页，前端点"查看全部"跳转用） =====
+    post("goods/fresh/page") {
+        @Serializable data class Req(val page: Int = 1)
+        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
+
+        @Serializable data class FreshItem(
+            val id: Long, val title: String, val subtitle: String,
+            val cover: String, val price: Int, val sold: Int
+        )
+
+        suspendTransaction {
+            val freshTypeId = Categories.selectAll().where { Categories.name eq "生鲜果蔬" }
+                .firstOrNull()?.get(Categories.id)
+            if (freshTypeId == null) {
+                call.respond(ok(PageResult(0L, emptyList<FreshItem>())))
+                return@suspendTransaction
+            }
+
+            val query = Goods.selectAll().where {
+                (Goods.typeId eq freshTypeId) and (Goods.status eq 1)
+            }
+            val total = query.count()
+            val list = query.orderBy(Goods.sortNum, SortOrder.ASC)
+                .limit(10).offset(((req.page.coerceAtLeast(1) - 1) * 10).toLong())
+                .map { row ->
+                    FreshItem(
+                        id = row[Goods.id],
+                        title = row[Goods.title],
+                        subtitle = row[Goods.subTitle] ?: "农场直采",
+                        cover = Img.full(call, row[Goods.mainPic]) ?: "",
+                        price = row[Goods.price],
+                        sold = row[Goods.sold]
+                    )
+                }
+
+            call.respond(ok(PageResult(total, list)))
+        }
+    }
+
+    // ===== 热门菜谱列表（分页） =====
+    post("recipes/hot/page") {
+        @Serializable data class Req(val page: Int = 1)
+        val req = runCatching { call.receive<Req>() }.getOrDefault(Req())
+
+        @Serializable data class HotRecipePageItem(
+            val id: Long, val name: String, val cover: String,
+            val description: String, val time: Int, val rating: Float
+        )
+
+        suspendTransaction {
+            val query = Recipes.selectAll().where { Recipes.status eq 1 }
+            val total = query.count()
+            val list = query.orderBy(Recipes.sortNum, SortOrder.ASC)
+                .limit(10).offset(((req.page.coerceAtLeast(1) - 1) * 10).toLong())
+                .map { row ->
+                    HotRecipePageItem(
+                        id = row[Recipes.id],
+                        name = row[Recipes.name],
+                        cover = Img.full(call, row[Recipes.pic]) ?: "",
+                        description = row[Recipes.description] ?: "",
+                        time = row[Recipes.time],
+                        rating = "%.1f".format(4.6 + row[Recipes.id] * 0.005f).toFloat()
+                    )
+                }
+
+            call.respond(ok(PageResult(total, list)))
         }
     }
 }

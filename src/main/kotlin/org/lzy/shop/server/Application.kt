@@ -165,24 +165,26 @@ fun Application.module() {
         staticFiles("uploads", java.io.File(System.getProperty("user.dir"), "uploads"))
 
         // ====== App 前端页面（静态资源 + 根路径处理） ======
-        // static("app") 处理 /app/index.html、/app/css/*、/app/js/*、/app/images/* 等精确文件
-        static("app") {
+        // 注意：不能用 /app 作为静态路径，会和上面的 route("app") API 路由冲突导致接口被吞掉
+        // 改到 /frontend 路径，彻底和 API 路由分离
+        static("frontend") {
             resources("app")
         }
-        // /app 根路径直接返回 index.html
-        resource("app", "app/index.html")
-        // /app/ 带尾斜杠也返回 index.html
-        resource("app/", "app/index.html")
+        get("frontend") {
+            call.respondRedirect("/frontend/", permanent = true)
+        }
+        resource("frontend/", "app/index.html")
 
         // ====== Admin 前端页面（静态资源 + 根路径处理） ======
-        // static("admin") 处理 /admin/index.html、/admin/style.css、/admin/app.js 等精确文件
-        static("admin") {
+        // 注意：不能用 /admin 作为静态路径，会和下面的 route("admin") API 路由冲突导致接口被吞掉
+        // 改到 /webadmin 路径，彻底和 API 路由分离
+        static("webadmin") {
             resources("admin")
         }
-        // /admin 根路径直接返回 index.html（Ktor resource API）
-        resource("admin", "admin/index.html")
-        // /admin/ 带尾斜杠也返回 index.html
-        resource("admin/", "admin/index.html")
+        get("webadmin") {
+            call.respondRedirect("/webadmin/", permanent = true)
+        }
+        resource("webadmin/", "admin/index.html")
 
         // ====== Admin API（后台管理接口） ======
         // 放在 static 之后、同一路径层级，configureAdminRoutes() 内部的 post/get 子路由会自然匹配
@@ -207,6 +209,7 @@ fun Route.configureAllAppRoutes() {
     configureUploadRoutes()
     configureCartRoutes()
     configureRecipesRoutes()
+    configureCommunityRoutes()
 }
 
 fun main() {
